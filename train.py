@@ -28,13 +28,16 @@ kl_annealing = AnealingCallback(anneal_schedule, hp_lambda)
 
 
 def plateau_check(model, patience, max_factor, vae_loss_val, em_loss_val):
-    '''
+    """
     Helper function for reduce_lr(). Checks if the validation loss has stopped
     decreasing as defined by the parameters.
-    model = "vae" or "emulator"
-    Returns True (reduce LR) or False (don't reduce LR)
-    '''
-
+    :param model: string, 'vae' or 'emulator'
+    :param patience: max number of epochs loss has not decreased
+    :param max_factor: max_factor * current loss is the max acceptable loss
+    :param vae_loss_val: list of vae validation losses
+    :param em_loss_val: list of emulator validation losses
+    :return: boolean, True (reduce LR) or False (don't reduce LR)
+    """
     if model == "vae":
         loss_list = vae_loss_val
     elif model == "emulator":
@@ -61,13 +64,16 @@ def plateau_check(model, patience, max_factor, vae_loss_val, em_loss_val):
 
 
 def reduce_lr(model, factor, min_lr):
-    '''
+    """
     Manual implementation of https://keras.io/api/callbacks/reduce_lr_on_plateau/.
-    model: "vae" or "em"
-    '''
+    :param model: string, 'vae' or 'emulator'
+    :param factor: factor * old LR is the new LR
+    :param min_lr: minimum allowed LR
+    :return: None
+    """
     assert min_lr >= 0, "min_lr must be non-negative"
     old_lr = K.get_value(model.optimizer.learning_rate)  # get current LR
-    if old_lr * factor <= min_lr and old_lr > min_lr:
+    if old_lr * factor <= min_lr < old_lr:
         new_lr = min_lr
         print('Reached min_lr, lr will not continue to decrease! {}_lr = {:.3e}'.format(model.name, new_lr))
     elif old_lr == min_lr:
@@ -79,9 +85,14 @@ def reduce_lr(model, factor, min_lr):
 
 
 def early_stop(patience, max_factor, vae_loss_val, em_loss_val):
-    '''
+    """
     Manual implementation of https://keras.io/api/callbacks/early_stopping/.
-    '''
+    :param patience: max number of epochs loss has not decreased
+    :param max_factor: max_factor * current loss is the max acceptable loss
+    :param vae_loss_val: list of vae validation losses
+    :param em_loss_val: list of emulator validation losses
+    :return: boolean, True (keep going) or False (stop early)
+    """
     if not len(vae_loss_val) > patience:  # there is not enough training to compare
         return True
 
@@ -102,16 +113,18 @@ def early_stop(patience, max_factor, vae_loss_val, em_loss_val):
         return True  # keep_going = True, continue
 
 
-## create minibatches
-
+# create minibatches
 batch_size = 256
 
 
 def create_batch(x_train, y_train, amplitudes):
-    '''
-    amplitudes = amplitdue of training signals / np.std(signal_train)
-    '''
-
+    """
+    Create minibatches.
+    :param x_train: training/validation parameters
+    :param y_train: training/validation signals
+    :param amplitudes: amplitude of training signals / np.std(signal_train)
+    :return: minibatches for training or validation
+    """
     dataset = tf.data.Dataset.from_tensor_slices((x_train, y_train, amplitudes)).shuffle(1000)
     # Combines consecutive elements of this dataset into batches.
     dataset = dataset.batch(batch_size, drop_remainder=True).prefetch(1)
