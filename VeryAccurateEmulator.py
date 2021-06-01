@@ -59,8 +59,7 @@ class VeryAccurateEmulator():
         # the default models are the pretrained ones
         if vae:
             self.vae = vae
-        else:
-            print('0')
+#        else:
 #            self.vae = tf.keras.models.load_model('models/vae.h5')
         if emulator:
             self.emulator = emulator
