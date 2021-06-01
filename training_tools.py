@@ -28,8 +28,8 @@ class AnnealingCallback(callbacks.Callback):
         K.set_value(self.variable, value)
 
 
-# instantiate the AnealingCallback class
-kl_annealing = AnealingCallback(anneal_schedule, hp_lambda)
+# instantiate the AnnealingCallback class
+kl_annealing = AnnealingCallback(anneal_schedule, hp_lambda)
 
 
 def plateau_check(model, patience, max_factor, vae_loss_val, em_loss_val):
