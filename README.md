@@ -9,9 +9,9 @@ Stephen: Temporarily (until the dataset is published somewhere), you would need 
 
 Plot a global signal given some input parameters, using the pretrained model
 ```python
-import 21cmVAE
+import VeryAccurateEmulator
 
-my21cmVAE_class = VeryAccurateEmulator()  # the pretrained emulator
+my21cmVAE_class = VeryAccurateEmulator.VeryAccurateEmulator()  # the pretrained emulator
 
 # make a list of parameters in the order ['fstar', 'Vc', 'fx', 'tau', 'alpha', 'nu_min', 'Rmfp']
 # if you forget the order, do:
