@@ -3,8 +3,8 @@
 To install:
 ```
 git clone https://github.com/christianhbye/21cmVAE.git
-'''
-
+```
+Plot a global signal given some input parameters, using the pretrained model
 ```python
 import 21cmVAE
 
@@ -34,4 +34,4 @@ plt.title('Global signal vs frequency')
 plt.xlabel(r'$\nu$ [MHz]')
 plt.ylabel('T [mK]')
 plt.show()
-'''
+```
