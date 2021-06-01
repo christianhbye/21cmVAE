@@ -6,7 +6,8 @@ from build_models import build_models
 import preprocess as pp
 from training_tools import train_models
 
-class 21cmVAE:
+
+class VeryAccurateEmulator():
     def __init__(self, vae=None, emulator=None):
         """
         :param vae: Keras model object, sets the default VAE if you already have a trained one
@@ -25,6 +26,7 @@ class 21cmVAE:
             self.par_val = hf['par_val'][:]
             self.par_test = hf['par_test'][:]
 
+        self.par_labels = ['fstar', 'Vc', 'fx', 'tau', 'alpha', 'nu_min', 'Rmfp']
 
         # initialize standard hyperparameters (used for the pretrained model)
         self.latent_dim = 22
@@ -35,12 +37,24 @@ class 21cmVAE:
         self.gamma = 1.5
 
         # initialize parameters for training
-        self.epochs = 350 # max number of epochs (can be less due to early stopping)
-        self.vae_lr = 0.01 # initial learning rate for VAE
-        self.em_lr = 0.01 # initial learning rate for emulator
-        self.activation_func = 'relu' # activation function in all hidden layers
-        self.lr_patience = # patience for learning rate scheduler
-        self.es_patience =  # patience for early stopping
+        self.epochs = 350  # max number of epochs (can be less due to early stopping)
+        self.vae_lr = 0.01  # initial learning rate for VAE
+        self.em_lr = 0.01  # initial learning rate for emulator
+        self.activation_func = 'relu'  # activation function in all hidden layers
+
+        # Parameters that control the learning rate schedule during training:
+        self.vae_lr_factor = 0.7  # factor LR is multiplied with when reduced
+        self.vae_lr_patience = 5  # number of epochs to wait before reducing LR
+        self.vae_min_lr = 1e-6  # minimum allowed LR
+        self.em_lr_factor = 0.7
+        self.em_lr_patience = 5
+        self.em_min_lr = 1e-6
+        # if the loss doesn't decrease to less than this factor, LR is reduced:
+        self.lr_max_factor = 0.95
+        # for early stopping
+        self.es_patience = 15  # number of epochs to wait before stopping training
+        # if the loss doesn't decrease to less than this factor, training is stopped:
+        self.es_max_factor = 0.99
 
         # the default models are the pretrained ones
         if vae:
@@ -51,6 +65,24 @@ class 21cmVAE:
             self.emulator = emulator
         else:
             self.emulator = tf.keras.models.load_model('models/emulator.h5')
+
+        # initialize lists with losses, these get updated when models are trained
+        self.vae_train_losses = []  # training set losses for VAE
+        self.vae_val_losses = []  # validation set losses for VAE
+        self.em_train_losses = []  # training set losses for emulator
+        self.em_val_losses = []  # validation set losses for emulator
+
+        # sampling redshifts: it is possible to train with signals that are not sampled with the same resolution
+        # or across the same redshift/frequency range. IN that case, these properties should be updated.
+        self.z_sampling = np.arange(5, 50+0.1, 0.1)  # redshifts
+
+        def z_to_nu(redshift):
+            rest_frequency = 1420405751.7667  # rest frequency in Hz
+            freqs = rest_frequency / (1 + redshift)
+            freqs /= 1e6  # convert to MHz
+            return freqs
+
+        self.nu_sampling = z_to_nu(z)  # frequencies
 
     def set_hyperparameters(self, latent_dim=self.latent_dim, encoder_dims=self.encoder_dims,
                             decoder_dims=self.decoder_dims, em_dims=self.em_dims, beta=self.beta,
@@ -74,7 +106,10 @@ class 21cmVAE:
         return None
 
     def train(self, signal_train=self.signal_train, par_train=self.par_train, signal_val=self.signal_val, par_val=self.par_val,
-              vae_lr=self.vae_lr, em_lr=self.em_lr, activation_func=self.activation_func, epochs=self.epochs):
+              vae_lr=self.vae_lr, em_lr=self.em_lr, activation_func=self.activation_func, epochs=self.epochs,
+              vae_lr_factor=self.vae_lr_factor, vae_lr_patience=self.vae_lr_patience, vae_min_lr=self.vae_min_lr,
+              em_lr_factor=self.em_lr_factor, em_lr_patience=self.em_lr_patience, em_min_lr=self.em_min_lr,
+              lr_max_factor=self.lr_max_factor, es_patience=self.es_patience, es_max_factor=self.es_max_factor):
 
         # update the properties
         self.signal_train = signal_train
@@ -85,12 +120,18 @@ class 21cmVAE:
         self.em_lr = em_lr
         self.activation_func = activation_func
         self.epochs = epochs
+        self.vae_lr_factor = vae_lr_factor
+        self.vae_lr_patience = vae_lr_patience
+        self.vae_min_lr = vae_min_lr
+        self.em_lr_factor = em_lr_factor
+        self.em_lr_patience = em_lr_patience
+        self.em_min_lr = em_min_lr
+        self.lr_max_factor = lr_max_factor
+        self.es_patience = es_patience
+        self.es_max_factor = es_max_factor
 
         # hyperparameters
-        hps = {}
-        hps['latent_dim'] = self.latent_dim
-        hps['beta'] = self.beta
-        hps['gamma'] = self.gamma
+        hps = dict(latent_dim=self.latent_dim, beta=self.beta, gamma=self.gamma)
         layer_hps = [self.encoder_dims, self.decoder_dims, self.em_dims]
 
         # build vae and emulator
@@ -114,35 +155,79 @@ class 21cmVAE:
         dataset = create_batch(X_train, y_train, train_amplitudes)
         val_dataset = create_batch(X_val, y_val, val_amplitudes)
 
-        losses = train_models(vae, emulator, dataset, val_dataset)
+        losses = train_models(vae, emulator, dataset, val_dataset, epochs, vae_lr_factor, em_lr_factor, vae_min_lr,
+                              em_min_lr, vae_lr_patience, em_lr_patience, lr_max_factor, es_patience, es_max_factor)
 
-    def predict(self, params, model_name='21cmVAE', model_dir='models'):
+        self.vae_train_losses = losses[0]
+        self.vae_val_losses = losses[1]
+        self.em_train_losses = losses[2]
+        self.em_val_losses = losses[3]
+
+    def predict(self, params):
         """
-        Predict global signals from input parameters.
+        Predict global signals from input parameters. The training parameters and training signals matters
+        for inverting the preprocessing of signals so these parameters must correspond to the training set the emulator
+        was trained on. These parameters are set correctly if a model is trained with the train() function or
+        the default model is used. Otherwise, the properties must be updated manually with 21cmVAE.par_train = ...
+        and 21cmVAE.signal_train = ...
         :param params: Array of shape (N, 7) where N = number of signals to predict and the columns are the values
         of the parameters. The parameters must be in the order [fstar, Vc, fx, tau, alpha, nu_min, Rmfp]
-        :param model: str, name of h5 file in the 'models' directory
-        with the keras model that can be loaded with tf.models.load_emulator(). Default is the pretrained 21cmVAE.
-        :param model_dir: str, path to directory where the model is saved. Default is 'models'.
         :return: Array with shape (N, 451) where each row is a global signal
         """
-        assert type(model_name) == str, 'model name must be string'
-        assert type(model_dir) == str, 'model directory must be string'
-        model_path = model_dir+'/' + model_name
-        emulator = tf.keras.models.load_model(model_path)
-        transformed_params = pp.par_transform(params, self.par_train)  # transform the input parameters
-        preprocessed_signal = emulator.predict(transformed_params)  # predict signal with emulator
-        predicted_signal = pp.unpreproc(preprocessed_signal, self.signal_train)  # unpreprocess the signal
+        model = self.emulator
+        training_params = self.par_train
+        training_signals = self.signal_train
+        transformed_params = pp.par_transform(params, training_params)  # transform the input parameters
+        preprocessed_signal = model.predict(transformed_params)  # predict signal with emulator
+        predicted_signal = pp.unpreproc(preprocessed_signal, training_signals)  # unpreprocess the signal
         return predicted_signal
 
+    def compute_rms_error(self, test_params=self.par_test, test_signals=self.signal_test, relative=True,
+                          flow=None, fhigh=None):
+        """
+        Computes the rms error as given in the paper, either a relative error or an absolute error in mK. If absolute
+        error, then different frequency bands can be chosen.
+        :param test_params: array, with shape (N, 7) of parameters to test on where N is the number of different
+        parameters to try at once (for  a vectorised call)
+        :param test_signals: array with shape (N, 451) [451 is flexible, depends on what signals the model is trained on]
+        of global signals corresponding to the test parameters
+        :param relative: boolean, whether the error computed should be relative or absolute
+        :param flow: float or None, lower bound for range of frequencies over which the rms error is computed. If None,
+        there's no lower bound.
+        :param fhigh: float or None, upper bound for range of frequencies over which the rms error is computed. If None,
+        there's no upper bound.
+        :return: array of shape (N, ), each row is the error for that signal
+        """
+        predicted_signal_input = predict(test_params)
+        true_signal_input = test_signals
+        assert predicted_signal_input.shape == true_signal_input.shape
+        if len(predicted_signal_input.shape) == 1:
+            predicted_signal = np.expand_dims(predicted_signal_input, axis=0)
+            true_signal = np.expand_dims(true_signal_input, axis=0)
+        else:
+            predicted_signal = predicted_signal_input.copy()
+            true_signal = true_signal_input.copy()
+        if not relative:
+            nu_arr = self.nu_sampling
+            assert nu_arr.shape[0] == predicted_signal.shape[1], "double check 21cmVAE.nu_sampling, it " \
+                                                                 "does not seem to match the shape of the" \
+                                                                 "predicted signal"
+            if flow and fhigh:
+                f = np.argwhere((nu_arr >= flow) & (nu_arr <= fhigh))[:, 0]
+                predicted_signal = predicted_signal[:, f]
+                true_signal = true_signal[:, f]
+            elif flow:
+                f1 = np.argwhere(nu_arr >= flow)
+                predicted_signal = predicted_signal[:, f1]
+                true_signal = true_signal[:, f1]
+            elif fhigh:
+                f2 = np.argwhere(nu_arr <= fhigh)
+                predicted_signal = predicted_signal[:, f2]
+                true_signal = true_signal[:, f2]
+        num = np.sqrt(np.mean((predicted_signal - true_signal) ** 2, axis=1))
+        if relative:  # give error as fraction of amplitude
+            den = np.max(np.abs(true_signal), axis=1)
+        else:  # give error in mK
+            den = 1
+        return num / den
 
-
-
-def evaulate():
-    """
-
-    :return:
-    """
-
-
-def
