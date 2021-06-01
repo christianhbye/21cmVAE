@@ -84,11 +84,10 @@ class VeryAccurateEmulator():
 
         self.nu_sampling = z_to_nu(z)  # frequencies
 
-    def set_hyperparameters(self, latent_dim=self.latent_dim, encoder_dims=self.encoder_dims,
-                            decoder_dims=self.decoder_dims, em_dims=self.em_dims, beta=self.beta,
-                            gamma=self.gamma):
+    def set_hyperparameters(self, **kwargs):
         """
         Set the hyperparameters of the model.
+        Possible **kwargs are:
         :param latent_dim: int, dimensionality of latent space
         :param encoder_dims: list of ints, dimensions of each encoder layer, e.g. [96, 224, 288, 32]
         :param decoder_dims: list of ints, dimensions of each decoder layer, e.g [288]
@@ -97,66 +96,82 @@ class VeryAccurateEmulator():
         :param gamma: float, parameter in VAE loss function (see equation 3 in Bye et al. 2021)
         :return: None
         """
-        self.latent_dim = latent_dim
-        self.encoder_dims = encoder_dims
-        self.decoder_dims = decoder_dims
-        self.em_dims = em_dims
-        self.beta = beta
-        self.gamma = gamma
+        for key, values in kwargs.items():
+            if key not in set(
+                    ['latent_dim', 'encoder_dims', 'decoder_dims', 'em_dims', 'beta', 'gamma']):
+                raise KeyError("Unexpected keyword argument in set_hyperparameters()")
+
+        self.latent_dim = kwargs.pop('latent_dim', self.latent_dim)
+        self.encoder_dims = kwargs.pop('encoder_dims', self.encoder_dims)
+        self.decoder_dims = kwargs.pop('decoder_dims', self.decoder_dims)
+        self.em_dims = kwargs.pop('em_dims', self.em_dims)
+        self.beta = kwargs.pop('beta', self.beta)
+        self.gamma = kwargs.pop('gamma', self.gamma)
+
         return None
 
-    def train(self, signal_train=self.signal_train, par_train=self.par_train, signal_val=self.signal_val, par_val=self.par_val,
-              vae_lr=self.vae_lr, em_lr=self.em_lr, activation_func=self.activation_func, epochs=self.epochs,
-              vae_lr_factor=self.vae_lr_factor, vae_lr_patience=self.vae_lr_patience, vae_min_lr=self.vae_min_lr,
-              em_lr_factor=self.em_lr_factor, em_lr_patience=self.em_lr_patience, em_min_lr=self.em_min_lr,
-              lr_max_factor=self.lr_max_factor, es_patience=self.es_patience, es_max_factor=self.es_max_factor):
+    def train(self, **kwargs):
+        """
+        Builds and trains a VAE and emulator simultaneously. Possible kwargs are
+        signal_train:
+        ...
+        To be completed
+        :return: None
+        """
+        for key, values in kwargs.items():
+            if key not in set(
+                    ['signal_train', 'par_train', 'signal_val', 'par_val', 'vae_lr', 'em_lr', 'activation_func',
+                     'epochs', 'vae_lr_factor', 'vae_lr_patience', 'vae_min_lr', 'em_lr_factor', 'em_lr_patience',
+                     'em_lr_factor', 'em_min_lr', 'lr_max_factor', 'es_patience', 'es_max_factor']):
+                raise KeyError("Unexpected keyword argument in train()")
 
         # update the properties
-        self.signal_train = signal_train
-        self.par_train = par_train
-        self.signal_val = signal_val
-        self.par_val = par_val
-        self.vae_lr = vae_lr
-        self.em_lr = em_lr
-        self.activation_func = activation_func
-        self.epochs = epochs
-        self.vae_lr_factor = vae_lr_factor
-        self.vae_lr_patience = vae_lr_patience
-        self.vae_min_lr = vae_min_lr
-        self.em_lr_factor = em_lr_factor
-        self.em_lr_patience = em_lr_patience
-        self.em_min_lr = em_min_lr
-        self.lr_max_factor = lr_max_factor
-        self.es_patience = es_patience
-        self.es_max_factor = es_max_factor
+        self.signal_train = kwargs.pop('signal_train', self.signal_train)
+        self.par_train = kwargs.pop('par_train', self.par_train)
+        self.signal_val = kwargs.pop('signal_val', self.signal_val)
+        self.par_val = kwargs.pop('par_val', self.par_val)
+        self.vae_lr = kwargs.pop('vae_lr', self.vae_lr)
+        self.em_lr = kwargs.pop('em_lr', self.em_lr)
+        self.activation_func = kwargs.pop('activation_func', self.activation_func)
+        self.epochs = kwargs.pop('epochs', self.epochs)
+        self.vae_lr_factor = kwargs.pop('vae_lr_factor', self.vae_lr_factor)
+        self.vae_lr_patience = kwargs.pop('vae_lr_patience', self.vae_lr_patience)
+        self.vae_min_lr = kwargs.pop('vae_min_lr', self.vae_min_lr)
+        self.em_lr_factor = kwargs.pop('em_lr_factor', self.em_lr_factor)
+        self.em_lr_patience = kwargs.pop('em_lr_patience', self.em_lr_patience)
+        self.em_min_lr = kwargs.pop('em_min_lr', self.em_min_lr)
+        self.lr_max_factor = kwargs.pop('lr_max_factor', self.lr_max_factor)
+        self.es_patience = kwargs.pop('es_patience', self.es_patience)
+        self.es_max_factor = kwargs.pop('es_max_factor', self.es_max_factor)
 
         # hyperparameters
         hps = dict(latent_dim=self.latent_dim, beta=self.beta, gamma=self.gamma)
         layer_hps = [self.encoder_dims, self.decoder_dims, self.em_dims]
 
         # build vae and emulator
-        vae, emulator = build_models(hps, layer_hps, vae_lr, em_lr, activation_func)
+        vae, emulator = build_models(hps, layer_hps, self.vae_lr, self.em_lr, self.activation_func)
 
         # update the default models
         self.vae = vae
         self.emulator = emulator
 
         # Input variables
-        X_train = pp.par_transform(par_train, par_train)
-        X_val = pp.par_transform(par_val, par_train)
-        train_amplitudes = np.max(np.abs(signal_train), axis=-1)
-        val_amplitudes = np.max(np.abs(signal_val), axis=-1)
+        X_train = pp.par_transform(self.par_train, self.par_train)
+        X_val = pp.par_transform(self.par_val, self.par_train)
+        train_amplitudes = np.max(np.abs(self.signal_train), axis=-1)
+        val_amplitudes = np.max(np.abs(self.signal_val), axis=-1)
 
         # Output variables
-        y_train = pp.preproc(signal_train, signal_train)
-        y_val = pp.preproc(signal_val, signal_train)
+        y_train = pp.preproc(self.signal_train, self.signal_train)
+        y_val = pp.preproc(self.signal_val, self.signal_train)
 
         # create the training and validation minibatches
         dataset = create_batch(X_train, y_train, train_amplitudes)
         val_dataset = create_batch(X_val, y_val, val_amplitudes)
 
-        losses = train_models(vae, emulator, dataset, val_dataset, epochs, vae_lr_factor, em_lr_factor, vae_min_lr,
-                              em_min_lr, vae_lr_patience, em_lr_patience, lr_max_factor, es_patience, es_max_factor)
+        losses = train_models(vae, emulator, dataset, val_dataset, self.epochs, self.vae_lr_factor, self.em_lr_factor,
+                              self.vae_min_lr, self.em_min_lr, self.vae_lr_patience, self.em_lr_patience,
+                              self.lr_max_factor, self.es_patience, self.es_max_factor)
 
         self.vae_train_losses = losses[0]
         self.vae_val_losses = losses[1]
@@ -182,11 +197,11 @@ class VeryAccurateEmulator():
         predicted_signal = pp.unpreproc(preprocessed_signal, training_signals)  # unpreprocess the signal
         return predicted_signal
 
-    def compute_rms_error(self, test_params=self.par_test, test_signals=self.signal_test, relative=True,
-                          flow=None, fhigh=None):
+    def compute_rms_error(self, **kwargs):
         """
         Computes the rms error as given in the paper, either a relative error or an absolute error in mK. If absolute
         error, then different frequency bands can be chosen.
+        Possible kwargs
         :param test_params: array, with shape (N, 7) of parameters to test on where N is the number of different
         parameters to try at once (for  a vectorised call)
         :param test_signals: array with shape (N, 451) [451 is flexible, depends on what signals the model is trained on]
@@ -198,6 +213,17 @@ class VeryAccurateEmulator():
         there's no upper bound.
         :return: array of shape (N, ), each row is the error for that signal
         """
+        for key, values in kwargs.items():
+            if key not in set(
+                    ['test_params', 'test_signals', 'relative', 'flow', 'fhigh']):
+                raise KeyError("Unexpected keyword argument in compute_rms_error()")
+
+        test_params = kwargs.pop('test_params', self.par_test)
+        test_signals = kwargs.pop('test_signals', self.signal_test)
+        relative = kwargs.pop('relative', True)
+        flow = kwargs.pop('flow', None)
+        fhigh = kwargs.pop('fhigh', None)
+
         predicted_signal_input = predict(test_params)
         true_signal_input = test_signals
         assert predicted_signal_input.shape == true_signal_input.shape
