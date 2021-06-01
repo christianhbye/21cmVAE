@@ -20,7 +20,7 @@ def sampling(args):
     return z_mean + K.exp(0.5 * z_log_var) * epsilon
 
 
-def em_loss_fcn(y_true, y_pred):
+def em_loss(y_true, y_pred):
     """
     The emulator loss function, that is, the square of the FoM in the paper, in units of standard deviation
     since the signals are preproccesed
@@ -129,6 +129,6 @@ def build_models(hps, layer_hps, vae_lr=0.01, em_lr=0.01, activation_func='relu'
     em_output = output_par
     emulator = Model(em_input_par, em_output, name='emulator')
     em_optimizer = optimizers.Adam(learning_rate=em_lr)
-    emulator.compile(optimizer=em_optimizer, loss=em_loss_fcn)
+    emulator.compile(optimizer=em_optimizer, loss=em_loss)
 
     return vae, emulator
