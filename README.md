@@ -4,6 +4,9 @@ To install:
 ```
 git clone https://github.com/christianhbye/21cmVAE.git
 ```
+
+Stephen: Temporarily (until the dataset is published somewhere), you would need to copy the 'dataset.h5' file manually into the 21cmVAE folder.
+
 Plot a global signal given some input parameters, using the pretrained model
 ```python
 import 21cmVAE
