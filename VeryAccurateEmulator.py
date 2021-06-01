@@ -2,7 +2,7 @@ import h5py
 import numpy as np
 import tensorflow as tf
 
-from build_models import build_models
+from build_models import build_models, em_loss
 import preprocess as pp
 from training_tools import train_models
 
@@ -60,11 +60,12 @@ class VeryAccurateEmulator():
         if vae:
             self.vae = vae
         else:
-            self.vae = tf.keras.models.load_model('models/vae.h5')
+            print('0')
+#            self.vae = tf.keras.models.load_model('models/vae.h5')
         if emulator:
             self.emulator = emulator
         else:
-            self.emulator = tf.keras.models.load_model('models/emulator.h5')
+            self.emulator = tf.keras.models.load_model('models/emulator.h5', custom_objects={'em_loss_fcn': em_loss})
 
         # initialize lists with losses, these get updated when models are trained
         self.vae_train_losses = []  # training set losses for VAE
@@ -82,7 +83,7 @@ class VeryAccurateEmulator():
             freqs /= 1e6  # convert to MHz
             return freqs
 
-        self.nu_sampling = z_to_nu(z)  # frequencies
+        self.nu_sampling = z_to_nu(self.z_sampling)  # frequencies
 
     def set_hyperparameters(self, **kwargs):
         """
@@ -195,7 +196,10 @@ class VeryAccurateEmulator():
         transformed_params = pp.par_transform(params, training_params)  # transform the input parameters
         preprocessed_signal = model.predict(transformed_params)  # predict signal with emulator
         predicted_signal = pp.unpreproc(preprocessed_signal, training_signals)  # unpreprocess the signal
-        return predicted_signal
+        if predicted_signal.shape[0] == 1:
+            return predicted_signal[0, :]
+        else:
+            return predicted_signal
 
     def compute_rms_error(self, **kwargs):
         """
