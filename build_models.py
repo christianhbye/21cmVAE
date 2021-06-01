@@ -27,23 +27,16 @@ def em_loss_fcn(y_true, y_pred):
     return loss
 
 
-# fixed hyperparameters
-#activation_func = 'relu'  # activation function
-#vae_lr = 0.01  # learning rate of VAE
-#em_lr = 0.01 # learning rate of emulator
-## initialize the Adam optimizers
-#vae_opt = optimizers.Adam(learning_rate=vae_lr)
-#em_opt = optimizers.Adam(learning_rate=vae_lr)
-
-
 def build_models(hps, layer_hps, vae_lr=0.01, em_lr=0.01, activation_func='relu'):
     """
     Function that build the two neural networks.
     :param hps: hyperparameters, a dictionary with values for the latent layer dimensionality, beta, and gamma
     :param layer_hps: the hyperparameters controlling the number of layers and their dimensionalities,
     packed into nested lists
-    :param vae_optimizer: a keras optimizer instance for the VAE, can be left untouched
-    :param em_optimizer: same as above, but for the emulator
+    :param vae_lr: float, initial VAE learning rate (will be reduced by reduce_lr() during training)
+    :param em_lr: float, initial emulator learning rate (will be reduced by reduce_lr() during training)
+    :param activation_func: str, name of a keras recognized activation function or a tf.keras.activations instance
+    (see https://keras.io/api/layers/activations/)
     :return: the VAE and the emulator as keras model objects
     """
     encoding_hidden_dims = layer_hps[0]  # the layers of the encoder

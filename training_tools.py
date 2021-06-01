@@ -1,3 +1,6 @@
+from tensorflow.keras import backend as K
+import numpy as np
+
 # KL annealing
 hp_lambda = K.variable(1)  # initialize the annealing parameter
 
@@ -113,10 +116,6 @@ def early_stop(patience, max_factor, vae_loss_val, em_loss_val):
         return True  # keep_going = True, continue
 
 
-# create minibatches
-batch_size = 256
-
-
 def create_batch(x_train, y_train, amplitudes):
     """
     Create minibatches.
@@ -125,6 +124,7 @@ def create_batch(x_train, y_train, amplitudes):
     :param amplitudes: amplitude of training signals / np.std(signal_train)
     :return: minibatches for training or validation
     """
+    batch_size = 256
     dataset = tf.data.Dataset.from_tensor_slices((x_train, y_train, amplitudes)).shuffle(1000)
     # Combines consecutive elements of this dataset into batches.
     dataset = dataset.batch(batch_size, drop_remainder=True).prefetch(1)
@@ -132,17 +132,29 @@ def create_batch(x_train, y_train, amplitudes):
     return dataset
 
 
-def train_models(vae, emulator, dataset, val_dataset, epochs=350):
-    '''
+def train_models(vae, emulator, dataset, val_dataset, epochs, vae_lr_factor, em_lr_factor, vae_min_lr, em_min_lr,
+                 vae_lr_patience, em_lr_patience, lr_max_factor, es_patience, es_max_factor):
+    """
     Function that train the models simultaneously
-
-    Input parameters:
-    vae: Keras model object, the VAE
-    emulator: Keras model object, the emulator
-    dataset: batches from training dataset
-    val_dataset: batches from validation dataset
-    epochs: max number of epochs to train for, early stopping may stop it before
-    '''
+    :param vae: Keras model object, the VAE
+    :param emulator: Keras model object, the emulator
+    :param dataset: batches from training dataset
+    :param val_dataset: batches from validation dataset
+    :param epochs: max number of epochs to train for, early stopping may stop it before
+    :param vae_lr_factor: factor * old LR (learning rate) is the new LR for the VAE
+    :param em_lr_factor: factor * old LR (learning rate) is the new LR for the emulator
+    :param vae_min_lr: minimum allowed LR for VAE
+    :param em_min_lr: minimum allowed LR for emulator
+    :param vae_lr_patience: max number of epochs loss has not decreased for the VAE before reducing LR
+    :param em_lr_patience: max number of epochs loss has not decreased for the emulator before reducing LR
+    :param lr_max_factor: max_factor * current loss is the max acceptable loss, a larger loss means that the counter
+    is added to, when it reaches the 'patience', the LR is reduced
+    :param es_patience: max number of epochs loss has not decreased before early stopping
+    :param es_max_factor: max_factor * current loss is the max acceptable loss, a larger loss for either the VAE or the
+    emulator means that the counter is added to, when it reaches the 'patience', early stopping is applied
+    :return tuple, four lists of losses as they change with epoch for the VAE (training loss and validation loss)
+    and emulator (training and validation) in that order
+    """
     # initialize lists of training losses and validation losses
     vae_loss = []
     vae_loss_val = []
@@ -251,7 +263,7 @@ def train_models(vae, emulator, dataset, val_dataset, epochs=350):
             emulator.save('checkpoints/best_em')
 
         # early stopping?
-        keep_going = early_stop(early_stop_patience, es_max_factor, vae_loss_val, em_loss_val)
+        keep_going = early_stop(es_patience, es_max_factor, vae_loss_val, em_loss_val)
         if not keep_going:
             break
 
