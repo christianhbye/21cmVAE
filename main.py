@@ -23,23 +23,25 @@ if not DATA_DIR in os.listdir():
     os.mkdir(DATA_DIR)
 os.chdir(DATA_DIR)
 
-# load the datasets
+# load the datasets from the h5 file
 with h5py.File('dataset.h5', 'r') as hf:
+    # signals
     signal_train = hf['signal_train'][:]
     signal_val = hf['signal_val'][:]
     signal_test = hf['signal_test'][:]
+    # parameters
     par_train = hf['par_train'][:]
     par_val = hf['par_val'][:]
     par_test = hf['par_test'][:]
 
 # get the amplitudes of the signals
-train_amplitudes = np.max(np.abs(signal_train), axis=-1)
-val_amplitudes = np.max(np.abs(signal_val), axis=-1)
-test_amplitudes = np.max(np.abs(signal_test), axis=-1)
+train_amplitudes = np.max(np.abs(signal_train), axis=-1)  # training set
+val_amplitudes = np.max(np.abs(signal_val), axis=-1)  # validation set
+test_amplitudes = np.max(np.abs(signal_test), axis=-1)  # test set
 
 
 # preprocessed signals
-signal_train_preproc = pp.preproc(signal_train, signal_train)
-signal_val_preproc = pp.preproc(signal_val, signal_train)
-signal_test_preproc = pp.preproc(signal_test, signal_train)
+signal_train_preproc = pp.preproc(signal_train, signal_train)  # training set
+signal_val_preproc = pp.preproc(signal_val, signal_train)  # validation set
+signal_test_preproc = pp.preproc(signal_test, signal_train)  # test set
 

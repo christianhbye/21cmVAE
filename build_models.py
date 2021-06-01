@@ -28,15 +28,15 @@ def em_loss_fcn(y_true, y_pred):
 
 
 # fixed hyperparameters
-activation_func = 'relu'  # activation function
-vae_lr = 0.01  # learning rate of VAE
-em_lr = 0.01 # learning rate of emulator
-# initialize the Adam optimizers
-vae_opt = optimizers.Adam(learning_rate=vae_lr)
-em_opt = optimizers.Adam(learning_rate=em_lr)
+#activation_func = 'relu'  # activation function
+#vae_lr = 0.01  # learning rate of VAE
+#em_lr = 0.01 # learning rate of emulator
+## initialize the Adam optimizers
+#vae_opt = optimizers.Adam(learning_rate=vae_lr)
+#em_opt = optimizers.Adam(learning_rate=vae_lr)
 
 
-def build_models(hps, layer_hps, vae_optimizer=vae_opt, em_optimizer=em_opt):
+def build_models(hps, layer_hps, vae_lr=0.01, em_lr=0.01, activation_func='relu'):
     """
     Function that build the two neural networks.
     :param hps: hyperparameters, a dictionary with values for the latent layer dimensionality, beta, and gamma
@@ -100,6 +100,7 @@ def build_models(hps, layer_hps, vae_optimizer=vae_opt, em_optimizer=em_opt):
     beta = hps['beta']
     vae_loss_fcn = (orig_dim * reconstruction_loss + beta * hp_lambda * kl_loss) / (orig_dim * gamma)
     vae.add_loss(vae_loss_fcn)  # add the loss function to the model
+    vae_optimizer = optimizers.Adam(learning_rate=vae_lr)
     vae.compile(optimizer=vae_optimizer)  # compile the model with the optimizer
 
     # make the emulator in the same way as the encoder
