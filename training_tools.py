@@ -16,9 +16,9 @@ def anneal_schedule(epoch):
     return min(epoch * 0.1, 1.)
 
 
-class AnealingCallback(callbacks.Callback):
+class AnnealingCallback(callbacks.Callback):
     def __init__(self, schedule, variable):
-        super(AneelingCallback, self).__init__()
+        super(AnnealingCallback, self).__init__()
         self.schedule = schedule
         self.variable = variable
 
