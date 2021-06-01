@@ -34,7 +34,8 @@ def par_transform(parameters, params_train):
     :param params_train: The parameters used to train the model
     :return: The processed parameters.
     """
-
+    if len(np.shape(parameters)) == 1:
+        parameters = np.expand_dims(parameters, axis=0)
     # first copy the parameters and take log of first three
     cols12 = parameters[:, :2].copy()  # fstar and Vc
     fx = parameters[:, 2].copy()  # fx
