@@ -1,3 +1,11 @@
+from tensorflow.keras import backend as K
+from tensorflow.keras.losses import mse
+from tensorflow.keras.layers import Input, Dense, Lambda
+from tensorflow.keras.models import Model
+from tensorflow.keras import optimizers
+import tensorflow as tf
+
+
 def sampling(args):
     """
     Function that samples from the Gaussian distributions to the latent layer

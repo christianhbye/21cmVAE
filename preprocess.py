@@ -1,3 +1,6 @@
+import numpy as np
+
+
 def preproc(signal, signal_train):
     """
     Function that preprocesses all the signals in train/validation/test set.
