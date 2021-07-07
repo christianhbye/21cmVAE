@@ -3,6 +3,22 @@ from tensorflow.keras import callbacks
 import tensorflow as tf
 import numpy as np
 
+
+def compile_VAE(vae, vae_lr, sampling_dim, hps, annealing_param, reconstruction_loss, kl_loss):
+    # get hyperparameters:
+    gamma = hps['gamma']
+    beta = hps['beta']
+    vae_loss_fcn = (sampling_dim * reconstruction_loss + beta * annealing_param * kl_loss) / (sampling_dim * gamma)
+    vae.add_loss(vae_loss_fcn)  # add the loss function to the model
+    vae_optimizer = optimizers.Adam(learning_rate=vae_lr)
+    vae.compile(optimizer=vae_optimizer)  # compile the model with the optimizer
+
+
+def compile_emulator(emulator, em_lr):
+    em_optimizer = optimizers.Adam(learning_rate=em_lr)
+    emulator.compile(optimizer=em_optimizer, loss=em_loss)
+
+
 # KL annealing
 hp_lambda = K.variable(1)  # initialize the annealing parameter
 
@@ -134,8 +150,9 @@ def create_batch(x_train, y_train, amplitudes):
     return dataset
 
 
-def train_models(vae, emulator, dataset, val_dataset, epochs, vae_lr_factor, em_lr_factor, vae_min_lr, em_min_lr,
-                 vae_lr_patience, em_lr_patience, lr_max_factor, es_patience, es_max_factor):
+def train_models(vae, emulator, reconstruction_loss, kl_loss, em_lr, vae_lr, dataset, val_dataset, epochs,
+                 vae_lr_factor, em_lr_factor, vae_min_lr, em_min_lr, vae_lr_patience, em_lr_patience, lr_max_factor,
+                 es_patience, es_max_factor):
     """
     Function that train the models simultaneously
     :param vae: Keras model object, the VAE
@@ -214,6 +231,15 @@ def train_models(vae, emulator, dataset, val_dataset, epochs, vae_lr_factor, em_
 
         # KL annealing, updates hp_lambda
         kl_annealing.on_epoch_begin(epoch)
+
+        # compile the models
+        sampling_dim = 0
+        for batch in dataset:
+            typical_signal = batch[1]
+            sampling_dim = np.shape(typical_signal)[-1]
+            break
+        compile_VAE(vae, vae_lr, sampling_dim, hps, hp_lambda, reconstruction_loss, kl_loss)
+        compile_emulator(emulator, em_lr)
 
         # loop through the batches and train the models on each batch
         for batch in dataset:

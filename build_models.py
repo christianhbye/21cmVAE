@@ -1,3 +1,4 @@
+import numpy as np
 from tensorflow.keras import backend as K
 from tensorflow.keras.losses import mse
 from tensorflow.keras.layers import Input, Dense, Lambda
@@ -35,17 +36,18 @@ def em_loss(y_true, y_pred):
     return loss
 
 
-def build_models(hps, layer_hps, vae_lr=0.01, em_lr=0.01, activation_func='relu'):
+def build_models(hps, layer_hps, signal_train, par_train, activation_func='relu'):
     """
     Function that build the two neural networks.
     :param hps: hyperparameters, a dictionary with values for the latent layer dimensionality, beta, and gamma
     :param layer_hps: the hyperparameters controlling the number of layers and their dimensionalities,
     packed into nested lists
+    :param signal_train: numpy array of training signals
     :param vae_lr: float, initial VAE learning rate (will be reduced by reduce_lr() during training)
     :param em_lr: float, initial emulator learning rate (will be reduced by reduce_lr() during training)
     :param activation_func: str, name of a keras recognized activation function or a tf.keras.activations instance
     (see https://keras.io/api/layers/activations/)
-    :return: the VAE and the emulator as keras model objects
+    :return: the VAE and the emulator as keras model objects and the two components of the VAE loss function
     """
     encoding_hidden_dims = layer_hps[0]  # the layers of the encoder
     vae_input = Input(shape=(signal_train.shape[1],))  # input layer for VAE
@@ -95,17 +97,10 @@ def build_models(hps, layer_hps, vae_lr=0.01, em_lr=0.01, activation_func='relu'
     kl_loss = 1 + z_log_var - K.square(z_mean) - K.exp(z_log_var)
     kl_loss = K.sum(kl_loss, axis=-1)
     kl_loss *= -0.5
-    orig_dim = signal_train.shape[-1]
-    # get hyperparameters:
-    gamma = hps['gamma']
-    beta = hps['beta']
-    vae_loss_fcn = (orig_dim * reconstruction_loss + beta * hp_lambda * kl_loss) / (orig_dim * gamma)
-    vae.add_loss(vae_loss_fcn)  # add the loss function to the model
-    vae_optimizer = optimizers.Adam(learning_rate=vae_lr)
-    vae.compile(optimizer=vae_optimizer)  # compile the model with the optimizer
+
 
     # make the emulator in the same way as the encoder
-    em_input_par = Input(shape=(X_train.shape[1],), name='em_input')
+    em_input_par = Input(shape=(par_train.shape[1],), name='em_input')
     em_hidden_dims = layer_hps[2]
     for i, dim in enumerate(em_hidden_dims):
         if i == 0:
@@ -128,7 +123,5 @@ def build_models(hps, layer_hps, vae_lr=0.01, em_lr=0.01, activation_func='relu'
     # compile the emulator
     em_output = output_par
     emulator = Model(em_input_par, em_output, name='emulator')
-    em_optimizer = optimizers.Adam(learning_rate=em_lr)
-    emulator.compile(optimizer=em_optimizer, loss=em_loss)
 
-    return vae, emulator
+    return vae, emulator, reconstruction_loss, kl_loss

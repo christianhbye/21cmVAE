@@ -4,7 +4,7 @@ import tensorflow as tf
 
 from build_models import build_models, em_loss
 import preprocess as pp
-from training_tools import train_models
+from training_tools import train_models, create_batch
 
 
 class VeryAccurateEmulator():
@@ -149,7 +149,8 @@ class VeryAccurateEmulator():
         layer_hps = [self.encoder_dims, self.decoder_dims, self.em_dims]
 
         # build vae and emulator
-        vae, emulator = build_models(hps, layer_hps, self.vae_lr, self.em_lr, self.activation_func)
+        vae, emulator, reconstruction_loss, kl_loss = build_models(hps, layer_hps, self.signal_train,
+                                                                   self.par_train, self.activation_func)
 
         # update the default models
         self.vae = vae
@@ -169,9 +170,10 @@ class VeryAccurateEmulator():
         dataset = create_batch(X_train, y_train, train_amplitudes)
         val_dataset = create_batch(X_val, y_val, val_amplitudes)
 
-        losses = train_models(vae, emulator, dataset, val_dataset, self.epochs, self.vae_lr_factor, self.em_lr_factor,
-                              self.vae_min_lr, self.em_min_lr, self.vae_lr_patience, self.em_lr_patience,
-                              self.lr_max_factor, self.es_patience, self.es_max_factor)
+        losses = train_models(vae, emulator, reconstruction_loss, kl_loss, self.em_lr, self.vae_lr, dataset,
+                              val_dataset, self.epochs, self.vae_lr_factor, self.em_lr_factor, self.vae_min_lr,
+                              self.em_min_lr, self.vae_lr_patience, self.em_lr_patience, self.lr_max_factor,
+                              self.es_patience, self.es_max_factor)
 
         self.vae_train_losses = losses[0]
         self.vae_val_losses = losses[1]
