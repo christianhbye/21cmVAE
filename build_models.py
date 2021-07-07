@@ -32,7 +32,7 @@ def build_models(hps, layer_hps, signal_train, par_train, activation_func='relu'
     :param em_lr: float, initial emulator learning rate (will be reduced by reduce_lr() during training)
     :param activation_func: str, name of a keras recognized activation function or a tf.keras.activations instance
     (see https://keras.io/api/layers/activations/)
-    :return: the VAE and the emulator as keras model objects and the two components of the VAE loss function
+    :return: the VAE and the emulator as keras model objects
     """
     encoding_hidden_dims = layer_hps[0]  # the layers of the encoder
     vae_input = Input(shape=(signal_train.shape[1],))  # input layer for VAE
@@ -82,7 +82,10 @@ def build_models(hps, layer_hps, signal_train, par_train, activation_func='relu'
     kl_loss = 1 + z_log_var - K.square(z_mean) - K.exp(z_log_var)
     kl_loss = K.sum(kl_loss, axis=-1)
     kl_loss *= -0.5
-
+    gamma = hps['gamma']
+    beta = hps['beta']
+    loss = (signal_train.shape[-1] * reconstruction_loss + beta * kl_loss) / (signal_train.shape[-1] * gamma)
+    vae.add_loss(loss)
 
     # make the emulator in the same way as the encoder
     em_input_par = Input(shape=(par_train.shape[1],), name='em_input')
@@ -109,4 +112,4 @@ def build_models(hps, layer_hps, signal_train, par_train, activation_func='relu'
     em_output = output_par
     emulator = Model(em_input_par, em_output, name='emulator')
 
-    return vae, emulator, reconstruction_loss, kl_loss
+    return vae, emulator

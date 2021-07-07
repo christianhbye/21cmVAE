@@ -2,9 +2,9 @@ import h5py
 import numpy as np
 import tensorflow as tf
 
-from build_models import build_models, em_loss
+from build_models import build_models
 import preprocess as pp
-from training_tools import train_models, create_batch
+from training_tools import train_models, create_batch, em_loss_fcn
 
 
 class VeryAccurateEmulator():
@@ -59,12 +59,12 @@ class VeryAccurateEmulator():
         # the default models are the pretrained ones
         if vae:
             self.vae = vae
-#        else:
-#            self.vae = tf.keras.models.load_model('models/vae.h5')
+        else:
+            self.vae = tf.keras.models.load_model('models/vae.h5')
         if emulator:
             self.emulator = emulator
         else:
-            self.emulator = tf.keras.models.load_model('models/emulator.h5', custom_objects={'em_loss_fcn': em_loss})
+            self.emulator = tf.keras.models.load_model('models/emulator.h5', custom_objects={'em_loss_fcn': em_loss_fcn})
 
         # initialize lists with losses, these get updated when models are trained
         self.vae_train_losses = []  # training set losses for VAE
@@ -149,8 +149,7 @@ class VeryAccurateEmulator():
         layer_hps = [self.encoder_dims, self.decoder_dims, self.em_dims]
 
         # build vae and emulator
-        vae, emulator, reconstruction_loss, kl_loss = build_models(hps, layer_hps, self.signal_train,
-                                                                   self.par_train, self.activation_func)
+        vae, emulator = build_models(hps, layer_hps, self.signal_train, self.par_train, self.activation_func)
 
         # update the default models
         self.vae = vae
@@ -170,10 +169,10 @@ class VeryAccurateEmulator():
         dataset = create_batch(X_train, y_train, train_amplitudes)
         val_dataset = create_batch(X_val, y_val, val_amplitudes)
 
-        losses = train_models(vae, emulator, reconstruction_loss, kl_loss, self.em_lr, self.vae_lr, hps, dataset,
-                              val_dataset, self.epochs, self.vae_lr_factor, self.em_lr_factor, self.vae_min_lr,
-                              self.em_min_lr, self.vae_lr_patience, self.em_lr_patience, self.lr_max_factor,
-                              self.es_patience, self.es_max_factor)
+        losses = train_models(vae, emulator, self.em_lr, self.vae_lr,
+                              self.signal_train, dataset, val_dataset, self.epochs, self.vae_lr_factor,
+                              self.em_lr_factor, self.vae_min_lr, self.em_min_lr, self.vae_lr_patience,
+                              self.em_lr_patience, self.lr_max_factor, self.es_patience, self.es_max_factor)
 
         self.vae_train_losses = losses[0]
         self.vae_val_losses = losses[1]

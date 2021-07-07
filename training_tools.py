@@ -1,67 +1,37 @@
 from tensorflow.keras import backend as K
 from tensorflow.keras import callbacks
 from tensorflow.keras import optimizers
+from tensorflow.keras.losses import mse
 import tensorflow as tf
 import numpy as np
 
 
-def compile_VAE(vae, vae_lr, sampling_dim, hps, annealing_param, reconstruction_loss, kl_loss):
-    # get hyperparameters:
-    gamma = hps['gamma']
-    beta = hps['beta']
-    vae_loss_fcn = (sampling_dim * reconstruction_loss + beta * annealing_param * kl_loss) / (sampling_dim * gamma)
-    vae.add_loss(vae_loss_fcn)  # add the loss function to the model
+
+def compile_VAE(vae, vae_lr):
     vae_optimizer = optimizers.Adam(learning_rate=vae_lr)
     vae.compile(optimizer=vae_optimizer)  # compile the model with the optimizer
 
 
-def em_loss(y_true, y_pred):
+def em_loss_fcn(signal_train):
     """
     The emulator loss function, that is, the square of the FoM in the paper, in units of standard deviation
-    since the signals are preproccesed
+    since the signals are preproccesed. We need a wrapper function to be able to pass signal_train as an input param.
     :param y_true: array, the true signal concatenated with the amplitude
     :param y_pred: array, the predicted signal (by the emulator)
     :return: the loss
     """
-    signal = y_true[:, 0:-1]  # the signal
-    amplitude = y_true[:, -1]/tf.math.reduce_std(signal_train)  # amplitude
-    loss = mse(y_pred, signal)  # loss is mean squared error ...
-    loss /= K.square(amplitude)  # ... divided by square of amplitude
-    return loss
+    def loss_function(y_true, y_pred):
+        signal = y_true[:, 0:-1]  # the signal
+        amplitude = y_true[:, -1]/tf.math.reduce_std(signal_train)  # amplitude
+        loss = mse(y_pred, signal)  # loss is mean squared error ...
+        loss /= K.square(amplitude)  # ... divided by square of amplitude
+        return loss
+    return loss_function
 
 
-def compile_emulator(emulator, em_lr):
+def compile_emulator(emulator, em_lr, signal_train):
     em_optimizer = optimizers.Adam(learning_rate=em_lr)
-    emulator.compile(optimizer=em_optimizer, loss=em_loss)
-
-
-# KL annealing
-hp_lambda = K.variable(1)  # initialize the annealing parameter
-
-
-def anneal_schedule(epoch):
-    """
-    Annealing schedule, linear increase from 0 to 1 over 10 epochs
-    :param epoch: Current training epoch
-    :return: Value of the annealing parameter
-    """
-    return min(epoch * 0.1, 1.)
-
-
-class AnnealingCallback(callbacks.Callback):
-    def __init__(self, schedule, variable):
-        super(AnnealingCallback, self).__init__()
-        self.schedule = schedule
-        self.variable = variable
-
-    def on_epoch_begin(self, epoch, logs={}):
-        value = self.schedule(epoch)
-        assert type(value) == float, ('The output of the "schedule" function should be float.')
-        K.set_value(self.variable, value)
-
-
-# instantiate the AnnealingCallback class
-kl_annealing = AnnealingCallback(anneal_schedule, hp_lambda)
+    emulator.compile(optimizer=em_optimizer, loss=em_loss_fcn(signal_train))
 
 
 def plateau_check(model, patience, max_factor, vae_loss_val, em_loss_val):
@@ -166,9 +136,9 @@ def create_batch(x_train, y_train, amplitudes):
     return dataset
 
 
-def train_models(vae, emulator, reconstruction_loss, kl_loss, em_lr, vae_lr, hps, dataset, val_dataset, epochs,
-                 vae_lr_factor, em_lr_factor, vae_min_lr, em_min_lr, vae_lr_patience, em_lr_patience, lr_max_factor,
-                 es_patience, es_max_factor):
+def train_models(vae, emulator, em_lr, vae_lr, signal_train, dataset, val_dataset,
+                 epochs, vae_lr_factor, em_lr_factor, vae_min_lr, em_min_lr, vae_lr_patience, em_lr_patience,
+                 lr_max_factor, es_patience, es_max_factor):
     """
     Function that train the models simultaneously
     :param vae: Keras model object, the VAE
@@ -204,17 +174,17 @@ def train_models(vae, emulator, reconstruction_loss, kl_loss, em_lr, vae_lr, hps
 
     @tf.function
     def run_train_step(batch):
-        '''
+        """
         Function that trains the VAE and emulator for one batch. Returns the losses
         for that specific batch.
-        '''
+        """
         params = batch[0]
         signal = batch[1]
         amp_raw = batch[2]  # amplitudes, raw because we need to reshape
         amplitudes = tf.expand_dims(amp_raw, axis=1)  # reshape amplitudes
         signal_amplitudes = tf.concat((signal, amplitudes), axis=1)  # both signal and amplitude
         with tf.GradientTape() as tape:
-            vae_pred = vae(signal)  # apply vae to input signal
+            vae_pred = vae(signal)  # apply VAE to signal
             vae_batch_loss = vae.losses  # get the loss
         # back-propagate losses for the VAE
         vae_gradients = tape.gradient(vae_batch_loss, vae.trainable_weights)
@@ -222,7 +192,8 @@ def train_models(vae, emulator, reconstruction_loss, kl_loss, em_lr, vae_lr, hps
         # same procedure for emulator
         with tf.GradientTape() as tape:
             em_pred = emulator(params)
-            em_batch_loss = em_loss_fcn(signal_amplitudes, em_pred)
+            loss_function = em_loss_fcn(signal_train)
+            em_batch_loss = loss_function(signal_amplitudes, em_pred)
         em_gradients = tape.gradient(em_batch_loss, emulator.trainable_weights)
         emulator.optimizer.apply_gradients(zip(em_gradients, emulator.trainable_weights))
         return vae_batch_loss, em_batch_loss
@@ -245,17 +216,9 @@ def train_models(vae, emulator, reconstruction_loss, kl_loss, em_lr, vae_lr, hps
         em_batch_losses = []
         val_em_batch_losses = []
 
-        # KL annealing, updates hp_lambda
-        kl_annealing.on_epoch_begin(epoch)
-
         # compile the models
-        sampling_dim = 0
-        for batch in dataset:
-            typical_signal = batch[1]
-            sampling_dim = np.shape(typical_signal)[-1]
-            break
-        compile_VAE(vae, vae_lr, sampling_dim, hps, hp_lambda, reconstruction_loss, kl_loss)
-        compile_emulator(emulator, em_lr)
+        compile_VAE(vae, vae_lr)
+        compile_emulator(emulator, em_lr, signal_train)
 
         # loop through the batches and train the models on each batch
         for batch in dataset:
