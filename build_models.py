@@ -21,21 +21,6 @@ def sampling(args):
     return z_mean + K.exp(0.5 * z_log_var) * epsilon
 
 
-def em_loss(y_true, y_pred):
-    """
-    The emulator loss function, that is, the square of the FoM in the paper, in units of standard deviation
-    since the signals are preproccesed
-    :param y_true: array, the true signal concatenated with the amplitude
-    :param y_pred: array, the predicted signal (by the emulator)
-    :return: the loss
-    """
-    signal = y_true[:, 0:-1]  # the signal
-    amplitude = y_true[:, -1]/tf.math.reduce_std(signal_train)  # amplitude
-    loss = mse(y_pred, signal)  # loss is mean squared error ...
-    loss /= K.square(amplitude)  # ... divided by square of amplitude
-    return loss
-
-
 def build_models(hps, layer_hps, signal_train, par_train, activation_func='relu'):
     """
     Function that build the two neural networks.

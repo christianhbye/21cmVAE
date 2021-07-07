@@ -1,5 +1,6 @@
 from tensorflow.keras import backend as K
 from tensorflow.keras import callbacks
+from tensorflow.keras import optimizers
 import tensorflow as tf
 import numpy as np
 
@@ -12,6 +13,21 @@ def compile_VAE(vae, vae_lr, sampling_dim, hps, annealing_param, reconstruction_
     vae.add_loss(vae_loss_fcn)  # add the loss function to the model
     vae_optimizer = optimizers.Adam(learning_rate=vae_lr)
     vae.compile(optimizer=vae_optimizer)  # compile the model with the optimizer
+
+
+def em_loss(y_true, y_pred):
+    """
+    The emulator loss function, that is, the square of the FoM in the paper, in units of standard deviation
+    since the signals are preproccesed
+    :param y_true: array, the true signal concatenated with the amplitude
+    :param y_pred: array, the predicted signal (by the emulator)
+    :return: the loss
+    """
+    signal = y_true[:, 0:-1]  # the signal
+    amplitude = y_true[:, -1]/tf.math.reduce_std(signal_train)  # amplitude
+    loss = mse(y_pred, signal)  # loss is mean squared error ...
+    loss /= K.square(amplitude)  # ... divided by square of amplitude
+    return loss
 
 
 def compile_emulator(emulator, em_lr):
@@ -150,7 +166,7 @@ def create_batch(x_train, y_train, amplitudes):
     return dataset
 
 
-def train_models(vae, emulator, reconstruction_loss, kl_loss, em_lr, vae_lr, dataset, val_dataset, epochs,
+def train_models(vae, emulator, reconstruction_loss, kl_loss, em_lr, vae_lr, hps, dataset, val_dataset, epochs,
                  vae_lr_factor, em_lr_factor, vae_min_lr, em_min_lr, vae_lr_patience, em_lr_patience, lr_max_factor,
                  es_patience, es_max_factor):
     """

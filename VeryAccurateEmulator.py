@@ -170,7 +170,7 @@ class VeryAccurateEmulator():
         dataset = create_batch(X_train, y_train, train_amplitudes)
         val_dataset = create_batch(X_val, y_val, val_amplitudes)
 
-        losses = train_models(vae, emulator, reconstruction_loss, kl_loss, self.em_lr, self.vae_lr, dataset,
+        losses = train_models(vae, emulator, reconstruction_loss, kl_loss, self.em_lr, self.vae_lr, hps, dataset,
                               val_dataset, self.epochs, self.vae_lr_factor, self.em_lr_factor, self.vae_min_lr,
                               self.em_min_lr, self.vae_lr_patience, self.em_lr_patience, self.lr_max_factor,
                               self.es_patience, self.es_max_factor)
