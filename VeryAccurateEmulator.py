@@ -110,6 +110,15 @@ class VeryAccurateEmulator():
 
         return None
 
+    def get_hyperparameters(self):
+        print('Hyperparameters are set to:')
+        print('Latent dimension:', self.latent_dim)
+        print('Encoder dimensions:', self.encoder_dims)
+        print('Decoder dimensions:', self.decoder_dims)
+        print('Emulator dimensions:', self.em_dims)
+        print('Beta:', self.beta)
+        print('Gamma:', self.gamma)
+
     def train(self, **kwargs):
         """
         Builds and trains a VAE and emulator simultaneously. Possible kwargs are
@@ -228,7 +237,7 @@ class VeryAccurateEmulator():
         flow = kwargs.pop('flow', None)
         fhigh = kwargs.pop('fhigh', None)
 
-        predicted_signal_input = predict(test_params)
+        predicted_signal_input = self.predict(test_params)
         true_signal_input = test_signals
         assert predicted_signal_input.shape == true_signal_input.shape
         if len(predicted_signal_input.shape) == 1:
