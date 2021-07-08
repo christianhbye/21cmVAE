@@ -6,7 +6,6 @@ import tensorflow as tf
 import numpy as np
 
 
-
 def compile_VAE(vae, vae_lr):
     vae_optimizer = optimizers.Adam(learning_rate=vae_lr)
     vae.compile(optimizer=vae_optimizer)  # compile the model with the optimizer
@@ -172,6 +171,10 @@ def train_models(vae, emulator, em_lr, vae_lr, signal_train, dataset, val_datase
     vae_reduced_lr = 0  # epochs since last time lr was reduced
     em_reduced_lr = 0  # epochs since last time lr was reduced
 
+    # compile the models
+    compile_VAE(vae, vae_lr)
+    compile_emulator(emulator, em_lr, signal_train)
+
     @tf.function
     def run_train_step(batch):
         """
@@ -215,10 +218,6 @@ def train_models(vae, emulator, em_lr, vae_lr, signal_train, dataset, val_datase
         val_vae_batch_losses = []
         em_batch_losses = []
         val_em_batch_losses = []
-
-        # compile the models
-        compile_VAE(vae, vae_lr)
-        compile_emulator(emulator, em_lr, signal_train)
 
         # loop through the batches and train the models on each batch
         for batch in dataset:
