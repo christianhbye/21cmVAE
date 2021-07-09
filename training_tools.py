@@ -113,10 +113,10 @@ def early_stop(patience, max_factor, vae_loss_val, em_loss_val):
     :param em_loss_val: list of emulator validation losses
     :return: boolean, True (keep going) or False (stop early)
     """
-    if vae_loss_val is not None:
-        if not len(vae_loss_val) > patience:  # there is not enough training to compare
-            return True
+    if not len(em_loss_val) > patience:  # there is not enough training to compare
+        return True
 
+    if vae_loss_val is not None:
         vae_max_loss = vae_loss_val[-(1 + patience)] * max_factor  # the max acceptable loss
     else:
         vae_max_loss = None
@@ -356,7 +356,7 @@ def train_direct_emulator(direct_emulator, em_lr, signal_train, dataset, val_dat
             loss_function = em_loss_fcn(signal_train)
             em_batch_loss = loss_function(signal_amplitudes, em_pred)
         em_gradients = tape.gradient(em_batch_loss, direct_emulator.trainable_weights)
-        emulator.optimizer.apply_gradients(zip(em_gradients, direct_emulator.trainable_weights))
+        direct_emulator.optimizer.apply_gradients(zip(em_gradients, direct_emulator.trainable_weights))
         return em_batch_loss
 
     # the training loop
@@ -406,9 +406,9 @@ def train_direct_emulator(direct_emulator, em_lr, signal_train, dataset, val_dat
 
         # save weights
         if epoch == 1:  # save first epoch
-            emulator.save('checkpoints/best_direct_em')
+            direct_emulator.save('checkpoints/best_direct_em')
         elif em_loss_val[-1] < np.min(em_loss_val[:-1]):  # performance is better than prev epoch
-            emulator.save('checkpoints/best_direct_em')
+            direct_emulator.save('checkpoints/best_direct_em')
 
         # early stopping?
         keep_going = early_stop(es_patience, es_max_factor, None, em_loss_val)

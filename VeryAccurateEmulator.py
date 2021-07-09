@@ -384,7 +384,6 @@ class DirectEmulator:
         :return: None
         """
         print('Hyperparameters are set to:')
-        print('Latent dimension:', self.latent_dim)
         print('Direct emulator dimensions:', self.direct_em_dims)
         print('Activation function:', self.activation_func)
 
@@ -450,7 +449,7 @@ class DirectEmulator:
         dataset = create_batch(X_train, y_train, train_amplitudes)
         val_dataset = create_batch(X_val, y_val, val_amplitudes)
 
-        losses = train_direct_emulator(direct_emulator, self.direct_em_lr, self.signal_train, dataset, val_dataset,
+        losses = train_direct_emulator(direct_emulator, self.em_lr, self.signal_train, dataset, val_dataset,
                                        self.epochs, self.em_lr_factor, self.em_min_lr, self.em_lr_patience,
                                        self.lr_max_factor, self.es_patience, self.es_max_factor)
 
