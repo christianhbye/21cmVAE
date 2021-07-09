@@ -17,7 +17,7 @@ from training_tools import em_loss_fcn, train_models
 MAX_TRIALS = 500 # number of models to build
 EPOCHS = 350 # max epochs for training (we use early stopping as well)
 
-with h5py.File('dataset.h5', 'r') as hf:
+with h5py.File('dataset_21cmVAE.h5', 'r') as hf:
   signal_train = hf['signal_train'][:]
   signal_val = hf['signal_val'][:]
   signal_test = hf['signal_test'][:]

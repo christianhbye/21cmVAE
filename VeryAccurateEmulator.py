@@ -18,7 +18,7 @@ class VeryAccurateEmulator():
         The default models will be updated to the most recently trained models with the train() method.
         """
         # initialize training set, validation set, and test set variables
-        with h5py.File('dataset.h5', 'r') as hf:
+        with h5py.File('dataset_21cmVAE.h5', 'r') as hf:
             self.signal_train = hf['signal_train'][:]
             self.signal_val = hf['signal_val'][:]
             self.signal_test = hf['signal_test'][:]
