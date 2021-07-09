@@ -113,17 +113,26 @@ def early_stop(patience, max_factor, vae_loss_val, em_loss_val):
     :param em_loss_val: list of emulator validation losses
     :return: boolean, True (keep going) or False (stop early)
     """
-    if not len(vae_loss_val) > patience:  # there is not enough training to compare
-        return True
+    if vae_loss_val is not None:
+        if not len(vae_loss_val) > patience:  # there is not enough training to compare
+            return True
 
-    vae_max_loss = vae_loss_val[-(1 + patience)] * max_factor  # the max acceptable loss
+        vae_max_loss = vae_loss_val[-(1 + patience)] * max_factor  # the max acceptable loss
+    else:
+        vae_max_loss = None
     em_max_loss = em_loss_val[-(1 + patience)] * max_factor  # the max acceptable loss
 
     count = 0
     while count < patience:
-        if vae_loss_val[-(1 + count)] > vae_max_loss and em_loss_val[-(1 + count)] > em_max_loss:
-            count += 1
-            continue
+        if em_loss_val[-(1 + count)] > em_max_loss:
+            if vae_loss_val is None:
+                count += 1
+                continue
+            elif vae_loss_val[-(1 + count)] > vae_max_loss:
+                count += 1
+                continue
+            else:
+                break
         else:
             break
     if count == patience:  # the last [patience] losses are all too large: stop training
@@ -299,4 +308,117 @@ def train_models(vae, emulator, em_lr, vae_lr, signal_train, dataset, val_datase
 
     return vae_loss, vae_loss_val, em_loss, em_loss_val
 
+
+def train_direct_emulator(direct_emulator, em_lr, signal_train, dataset, val_dataset, epochs, em_lr_factor, em_min_lr,
+                          em_lr_patience, lr_max_factor, es_patience, es_max_factor):
+    """
+    Function that trains the direct emulator
+    :param direct_emulator: Keras model object, the direct emulator
+    :param em_lr: float, initial direct emulator learning rate
+    :param signal_train: numpy array of training signals
+    :param dataset: batches from training dataset
+    :param val_dataset: batches from validation dataset
+    :param epochs: max number of epochs to train for, early stopping may stop it before
+    :param em_lr_factor: factor * old LR (learning rate) is the new LR for the emulator
+    :param em_min_lr: minimum allowed LR for emulator
+    :param em_lr_patience: max number of epochs loss has not decreased for the emulator before reducing LR
+    :param lr_max_factor: max_factor * current loss is the max acceptable loss, a larger loss means that the counter
+    is added to, when it reaches the 'patience', the LR is reduced
+    :param es_patience: max number of epochs loss has not decreased before early stopping
+    :param es_max_factor: max_factor * current loss is the max acceptable loss, a larger loss for either the VAE or the
+    emulator means that the counter is added to, when it reaches the 'patience', early stopping is applied
+    :return tuple, two lists of losses as they change with epoch for the emulator (training and validation)
+    """
+    # initialize lists of training losses and validation losses
+    em_loss = []
+    em_loss_val = []
+
+    # Did the model loss plateau?
+    plateau_em = False
+    em_reduced_lr = 0  # epochs since last time lr was reduced
+
+    # compile the models
+    compile_emulator(direct_emulator, em_lr, signal_train)
+
+    @tf.function
+    def run_train_step(batch):
+        """
+        Function that trains the VAE and emulator for one batch. Returns the losses
+        for that specific batch.
+        """
+        params = batch[0]
+        signal = batch[1]
+        amp_raw = batch[2]  # amplitudes, raw because we need to reshape
+        amplitudes = tf.expand_dims(amp_raw, axis=1)  # reshape amplitudes
+        signal_amplitudes = tf.concat((signal, amplitudes), axis=1)  # both signal and amplitude
+        with tf.GradientTape() as tape:
+            em_pred = direct_emulator(params)
+            loss_function = em_loss_fcn(signal_train)
+            em_batch_loss = loss_function(signal_amplitudes, em_pred)
+        em_gradients = tape.gradient(em_batch_loss, direct_emulator.trainable_weights)
+        emulator.optimizer.apply_gradients(zip(em_gradients, direct_emulator.trainable_weights))
+        return em_batch_loss
+
+    # the training loop
+    for i in range(epochs):
+        epoch = int(i + 1)
+        print("\nEpoch {}/{}".format(epoch, epochs))
+
+        # reduce lr if necessary
+        if plateau_em and em_reduced_lr >= 5:
+            reduce_lr(direct_emulator, em_lr_factor, em_min_lr)
+            em_reduced_lr = 0
+
+        em_batch_losses = []
+        val_em_batch_losses = []
+
+        # loop through the batches and train the models on each batch
+        for batch in dataset:
+            em_batch_loss = run_train_step(batch)
+            em_batch_losses.append(em_batch_loss)  # append emulator train loss for this batch
+
+        # loop through the validation batches, we are not training on them but
+        # just evaluating and tracking the performance
+        for batch in val_dataset:
+            param_val = batch[0]
+            signal_val = batch[1]
+            amp_val = tf.expand_dims(batch[2], axis=1)
+            val_signal_amplitudes = tf.concat((signal_val, amp_val), axis=1)
+            val_em_batch_loss = direct_emulator.test_on_batch(param_val, val_signal_amplitudes)
+            val_em_batch_losses.append(val_em_batch_loss)
+
+        em_loss_epoch = K.mean(tf.convert_to_tensor(em_batch_losses))  # average emulator train loss
+        print('Emulator train loss: {:.4f}'.format(em_loss_epoch))
+
+        # in case a loss is NaN
+        # this is unusal, but not a big deal, just restart the training
+        # (otherwise the loss just stays NaN)
+        if np.isnan(em_loss_epoch):
+            print("Loss is NaN, restart training")
+            break
+
+        # save each epoch loss to a list with all epochs
+        em_loss.append(em_loss_epoch)
+
+        em_loss_epoch_val = np.mean(val_em_batch_losses)  # average emulator train loss
+        em_loss_val.append(em_loss_epoch_val)
+        print('Emulator val loss: {:.4f}'.format(em_loss_epoch_val))
+
+        # save weights
+        if epoch == 1:  # save first epoch
+            emulator.save('checkpoints/best_direct_em')
+        elif em_loss_val[-1] < np.min(em_loss_val[:-1]):  # performance is better than prev epoch
+            emulator.save('checkpoints/best_direct_em')
+
+        # early stopping?
+        keep_going = early_stop(es_patience, es_max_factor, None, em_loss_val)
+        if not keep_going:
+            break
+
+        # check if loss stopped decreasing
+        plateau_em = plateau_check("emulator", em_lr_patience, lr_max_factor, None, em_loss_val)
+
+        em_reduced_lr += 1
+
+    return em_loss, em_loss_val
 
