@@ -1,7 +1,5 @@
 # Very Accurate Emulator
 
-Stephen: Temporarily (until the dataset is published somewhere), you would need to copy the 'dataset.h5' file manually into the 21cmVAE folder.
-
 Very Accurate Emulator (21cmVAE) is an emulator of the 21-cm global signal. It is based on a variational autoencoder, which creates a low-dimensional representation of the global signal, and a neural network that predicts the autoencoder representation given an input of seven astrophyscial parameters. The emulator is described in detail in [Bye et. al, 2021](arxiv.org). 
 
 21cmVAE emulates global signals with an average error of 0.41% of the signal amplitude (equivalently 0.66 mK) with a run time of 40 ms on average. It is trained on ~30,000 cases, the same training set as the other exisiting emulators [21cmGEM](https://ui.adsabs.harvard.edu/abs/2020MNRAS.495.4845C/abstract) and [globalemu](https://ui.adsabs.harvard.edu/abs/2021arXiv210404336B/abstract). The accuracy and speed makes 21cmVAE a possible tool for parameter fitting, using samplig techinques like MCMC. Moreover, the variational autoencoder approach creates an interpretable latent space that allows us to determine the relative importance of the model parameters on the global 21-cm signal. 
@@ -19,7 +17,9 @@ conda create -n emulator_env ipykernel python=3.7.10 tensorflow=2.5.0 numpy h5py
 conda activate emulator_env
 python -m ipykernel install --user --name emulator_env --display-name "21cmVAE"
 ```
-Then, simply clone the repository:
+Then, clone the repository:
 ```
 git clone https://github.com/christianhbye/21cmVAE.git
 ```
+
+Finally, download the dataset used from Zenodo: doi:... and move the file to the 21cmVAE folder. This is necessary for all uses of the emulator, as the dataset is used in the prediction alogrithm.
