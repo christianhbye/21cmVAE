@@ -35,12 +35,12 @@ class VeryAccurateEmulator():
         self.em_dims = [160, 224]
         self.beta = 0.4
         self.gamma = 1.5
+        self.activation_func = 'relu'  # activation function in all hidden layers
 
         # initialize parameters for training
         self.epochs = 350  # max number of epochs (can be less due to early stopping)
         self.vae_lr = 0.01  # initial learning rate for VAE
         self.em_lr = 0.01  # initial learning rate for emulator
-        self.activation_func = 'relu'  # activation function in all hidden layers
 
         # Parameters that control the learning rate schedule during training:
         self.vae_lr_factor = 0.7  # factor LR is multiplied with when reduced
@@ -88,17 +88,19 @@ class VeryAccurateEmulator():
         """
         Set the hyperparameters of the model.
         Possible **kwargs are:
-        :param latent_dim: int, dimensionality of latent space
-        :param encoder_dims: list of ints, dimensions of each encoder layer, e.g. [96, 224, 288, 32]
-        :param decoder_dims: list of ints, dimensions of each decoder layer, e.g [288]
-        :param em_dims: list of ints, dimensions of each emulator layer (not in the decoder), e.g [160, 224]
-        :param beta: float, parameter in VAE loss function (see equation 3 in Bye et al. 2021)
-        :param gamma: float, parameter in VAE loss function (see equation 3 in Bye et al. 2021)
+        latent_dim: int, dimensionality of latent space
+        encoder_dims: list of ints, dimensions of each encoder layer, e.g. [96, 224, 288, 32]
+        decoder_dims: list of ints, dimensions of each decoder layer, e.g [288]
+        em_dims: list of ints, dimensions of each emulator layer (not in the decoder), e.g [160, 224]
+        beta: float, parameter in VAE loss function (see equation 3 in Bye et al. 2021)
+        gamma: float, parameter in VAE loss function (see equation 3 in Bye et al. 2021)
+        activation_function: str, name of a keras recognized activation function or a tf.keras.activations instance
+        (see https://keras.io/api/layers/activations/). Used in all hidden layers.
         :return: None
         """
         for key, values in kwargs.items():
             if key not in set(
-                    ['latent_dim', 'encoder_dims', 'decoder_dims', 'em_dims', 'beta', 'gamma']):
+                    ['latent_dim', 'encoder_dims', 'decoder_dims', 'em_dims', 'beta', 'gamma', 'activation_func']):
                 raise KeyError("Unexpected keyword argument in set_hyperparameters()")
 
         self.latent_dim = kwargs.pop('latent_dim', self.latent_dim)
@@ -107,6 +109,7 @@ class VeryAccurateEmulator():
         self.em_dims = kwargs.pop('em_dims', self.em_dims)
         self.beta = kwargs.pop('beta', self.beta)
         self.gamma = kwargs.pop('gamma', self.gamma)
+        self.activation_func = kwargs.pop('activation_function', self.activation_func)
 
         return None
 
@@ -122,6 +125,7 @@ class VeryAccurateEmulator():
         print('Emulator dimensions:', self.em_dims)
         print('Beta:', self.beta)
         print('Gamma:', self.gamma)
+        print('Activation function:', self.activation_func)
 
     def train(self, **kwargs):
         """
@@ -132,20 +136,28 @@ class VeryAccurateEmulator():
         par_val: numpy array of validation set parameters
         vae_lr: float, initial learning rate of VAE
         em_lr: float, initial learning rate of emulator
-        activation_func: str, name of a keras recognized activation function or a tf.keras.activations instance
-        (see https://keras.io/api/layers/activations/)
         epochs: int, number of epochs to train for
         vae_lr_factor: float, factor * old LR (learning rate) is the new LR for the VAE (used for LR schedule)
+        vae_lr_patience: float, max number of epochs loss has not decreased for the VAE before reducing LR (used for
+        LR schedule)
         vae_min_lr: float, minimum allowed learning rate for VAE
         em_lr_factor: float, factor * old LR (learning rate) is the new LR for the emulator (used for LR schedule)
-        To be completed
+        em_lr_patience: float, max number of epochs loss has not decreased for the emulator before reducing LR
+        (used for LR schedule)
+        em_min_lr: float, minimum allowed learning rate for emulator
+        lr_max_factor: float, max_factor * current loss is the max acceptable loss, a larger loss means that the counter
+        is added to, when it reaches the 'patience', the LR is reduced (used for LR schedule)
+        es_patience: float, max number of epochs loss has not decreased before early stopping
+        es_max_factor: float, max_factor * current loss is the max acceptable loss, a larger loss for either the VAE or
+        the emulator means that the counter is added to, when it reaches the 'patience', early stopping is applied
+
         :return: None
         """
         for key, values in kwargs.items():
             if key not in set(
-                    ['signal_train', 'par_train', 'signal_val', 'par_val', 'vae_lr', 'em_lr', 'activation_func',
-                     'epochs', 'vae_lr_factor', 'vae_lr_patience', 'vae_min_lr', 'em_lr_factor', 'em_lr_patience',
-                     'em_lr_factor', 'em_min_lr', 'lr_max_factor', 'es_patience', 'es_max_factor']):
+                    ['signal_train', 'par_train', 'signal_val', 'par_val', 'vae_lr', 'em_lr', 'epochs',
+                     'vae_lr_factor', 'vae_lr_patience', 'vae_min_lr', 'em_lr_factor', 'em_lr_patience',
+                     'em_min_lr', 'lr_max_factor', 'es_patience', 'es_max_factor']):
                 raise KeyError("Unexpected keyword argument in train()")
 
         # update the properties
@@ -155,7 +167,6 @@ class VeryAccurateEmulator():
         self.par_val = kwargs.pop('par_val', self.par_val)
         self.vae_lr = kwargs.pop('vae_lr', self.vae_lr)
         self.em_lr = kwargs.pop('em_lr', self.em_lr)
-        self.activation_func = kwargs.pop('activation_func', self.activation_func)
         self.epochs = kwargs.pop('epochs', self.epochs)
         self.vae_lr_factor = kwargs.pop('vae_lr_factor', self.vae_lr_factor)
         self.vae_lr_patience = kwargs.pop('vae_lr_patience', self.vae_lr_patience)
