@@ -111,6 +111,10 @@ class VeryAccurateEmulator():
         return None
 
     def get_hyperparameters(self):
+        """
+        Method that prints the current hyperparameters. Takes no input arguments.
+        :return: None
+        """
         print('Hyperparameters are set to:')
         print('Latent dimension:', self.latent_dim)
         print('Encoder dimensions:', self.encoder_dims)
@@ -122,8 +126,18 @@ class VeryAccurateEmulator():
     def train(self, **kwargs):
         """
         Builds and trains a VAE and emulator simultaneously. Possible kwargs are
-        signal_train:
-        ...
+        signal_train: numpy array of training signals
+        par_train: numpy array of training set parameters
+        signal_val: numpy array of validation signals
+        par_val: numpy array of validation set parameters
+        vae_lr: float, initial learning rate of VAE
+        em_lr: float, initial learning rate of emulator
+        activation_func: str, name of a keras recognized activation function or a tf.keras.activations instance
+        (see https://keras.io/api/layers/activations/)
+        epochs: int, number of epochs to train for
+        vae_lr_factor: float, factor * old LR (learning rate) is the new LR for the VAE (used for LR schedule)
+        vae_min_lr: float, minimum allowed learning rate for VAE
+        em_lr_factor: float, factor * old LR (learning rate) is the new LR for the emulator (used for LR schedule)
         To be completed
         :return: None
         """
@@ -236,6 +250,11 @@ class VeryAccurateEmulator():
         relative = kwargs.pop('relative', True)
         flow = kwargs.pop('flow', None)
         fhigh = kwargs.pop('fhigh', None)
+
+        if flow is not None or fhigh is not None:
+            if relative:
+                print("One or two frequency bounds are specified, but 'relative' is set to True so the relative"
+                      " error will be computed and the frequency bounds ignored. Did you mean to set relative=False?")
 
         predicted_signal_input = self.predict(test_params)
         true_signal_input = test_signals
