@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.5085445.svg)](https://doi.org/10.5281/zenodo.5085445)
+
 # Very Accurate Emulator
 
 Very Accurate Emulator (21cmVAE) is an emulator of the 21-cm global signal. It is based on a variational autoencoder, which creates a low-dimensional representation of the global signal, and a neural network that predicts the autoencoder representation given an input of seven astrophyscial parameters. The emulator is described in detail in [Bye et. al, 2021](arxiv.org). 
