@@ -28,8 +28,7 @@ def build_models(hps, layer_hps, signal_train, par_train, activation_func='relu'
     :param layer_hps: the hyperparameters controlling the number of layers and their dimensionalities,
     packed into nested lists
     :param signal_train: numpy array of training signals
-    :param vae_lr: float, initial VAE learning rate (will be reduced by reduce_lr() during training)
-    :param em_lr: float, initial emulator learning rate (will be reduced by reduce_lr() during training)
+    :param par_train: numpy array of training parameters
     :param activation_func: str, name of a keras recognized activation function or a tf.keras.activations instance
     (see https://keras.io/api/layers/activations/)
     :return: the VAE and the emulator as keras model objects

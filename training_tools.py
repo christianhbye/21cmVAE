@@ -7,6 +7,12 @@ import numpy as np
 
 
 def compile_VAE(vae, vae_lr):
+    """
+    Function that compiles the VAE with a given learning rate and the Adam optimizer
+    :param vae: keras model object
+    :param vae_lr: float, initial learning rate
+    :return: None
+    """
     vae_optimizer = optimizers.Adam(learning_rate=vae_lr)
     vae.compile(optimizer=vae_optimizer)  # compile the model with the optimizer
 
@@ -15,6 +21,7 @@ def em_loss_fcn(signal_train):
     """
     The emulator loss function, that is, the square of the FoM in the paper, in units of standard deviation
     since the signals are preproccesed. We need a wrapper function to be able to pass signal_train as an input param.
+    :param signal_train: numpy array of training signals
     :param y_true: array, the true signal concatenated with the amplitude
     :param y_pred: array, the predicted signal (by the emulator)
     :return: the loss
@@ -29,6 +36,13 @@ def em_loss_fcn(signal_train):
 
 
 def compile_emulator(emulator, em_lr, signal_train):
+    """
+    Function that compiles the VAE with a given learning rate and the Adam optimizer
+    :param emulator: keras model object
+    :param em_lr: float, initial learning rate of emulator
+    :param signal_train: numpy array of training signals (needed to get the amplitudes)
+    :return: None
+    """
     em_optimizer = optimizers.Adam(learning_rate=em_lr)
     emulator.compile(optimizer=em_optimizer, loss=em_loss_fcn(signal_train))
 
@@ -142,6 +156,9 @@ def train_models(vae, emulator, em_lr, vae_lr, signal_train, dataset, val_datase
     Function that train the models simultaneously
     :param vae: Keras model object, the VAE
     :param emulator: Keras model object, the emulator
+    :param em_lr: float, initial emulator learning rate
+    :param vae_lr: float, initial VAE learning rate
+    :param signal_train: numpy array of training signals
     :param dataset: batches from training dataset
     :param val_dataset: batches from validation dataset
     :param epochs: max number of epochs to train for, early stopping may stop it before
