@@ -1,25 +1,15 @@
 from tensorflow.keras import backend as K
-from tensorflow.keras import callbacks
+from tensorflow.keras.callbacks import ReduceLROnPlateau, EarlyStopping
 from tensorflow.keras import optimizers
 from tensorflow.keras.losses import mse
 import tensorflow as tf
 import numpy as np
+import preprocess as pp
 
 
-def compile_VAE(vae, vae_lr):
+def _relative_mse_loss(signal_train):
     """
-    Function that compiles the VAE with a given learning rate and the Adam optimizer
-    :param vae: keras model object
-    :param vae_lr: float, initial learning rate
-    :return: None
-    """
-    vae_optimizer = optimizers.Adam(learning_rate=vae_lr)
-    vae.compile(optimizer=vae_optimizer)  # compile the model with the optimizer
-
-
-def em_loss_fcn(signal_train):
-    """
-    The emulator loss function, that is, the square of the FoM in the paper, in units of standard deviation
+    The square of the FoM in the paper, in units of standard deviation
     since the signals are preproccesed. We need a wrapper function to be able to pass signal_train as an input param.
     :param signal_train: numpy array of training signals
     :param y_true: array, the true signal concatenated with the amplitude
@@ -35,35 +25,37 @@ def em_loss_fcn(signal_train):
     return loss_function
 
 
-def compile_emulator(emulator, em_lr, signal_train):
+def _compile_model(model, lr, relative_mse=False, signal_train=None):
     """
-    Function that compiles the VAE with a given learning rate and the Adam optimizer
-    :param emulator: keras model object
-    :param em_lr: float, initial learning rate of emulator
-    :param signal_train: numpy array of training signals (needed to get the amplitudes)
+    Function that compiles a model with a given learning rate and loss function and the Adam optimizer
+    :param model: keras model object, model to compile
+    :param lr: float, initial learning rate of model
+    :param relative_mse: bool, the loss function is mse/amplitude if True (like the FOM in the paper) and mse if False
+    (necessary for the autoencoder based emulator). In general, you'll want True unless your model is the autoencoder-
+    based emulator.
+    :param signal_train: numpy array of training signals (needed to get the amplitudes), needed when relative_mse=True
     :return: None
     """
-    em_optimizer = optimizers.Adam(learning_rate=em_lr)
-    emulator.compile(optimizer=em_optimizer, loss=em_loss_fcn(signal_train))
+    if relative_mse and signal_train is None:
+        raise KeyError("relative_mse=True but signal_train=None so amplitudes cannot be computed!")
+    optimizer = optimizers.Adam(learning_rate=lr)
+    if relative_mse:
+        loss_fcn = _relative_mse_loss(signal_train)
+    else:
+        loss_fcn = mse
+    model.compile(optimizer=optimizer, loss=loss_fcn)
 
 
-def plateau_check(model, patience, max_factor, vae_loss_val, em_loss_val):
+def _plateau_check(patience, max_factor, em_loss_val):
     """
     Helper function for reduce_lr(). Checks if the validation loss has stopped
     decreasing as defined by the parameters.
-    :param model: string, 'vae' or 'emulator'
     :param patience: max number of epochs loss has not decreased
     :param max_factor: max_factor * current loss is the max acceptable loss
-    :param vae_loss_val: list of vae validation losses
     :param em_loss_val: list of emulator validation losses
     :return: boolean, True (reduce LR) or False (don't reduce LR)
     """
-    if model == "vae":
-        loss_list = vae_loss_val
-    elif model == "emulator":
-        loss_list = em_loss_val
-    else:
-        print('Invalid input parameter "model". Must be "vae" or "emulator".')
+    loss_list = em_loss_val
 
     if not len(loss_list) > patience:  # there is not enough training to compare
         return False
@@ -83,10 +75,10 @@ def plateau_check(model, patience, max_factor, vae_loss_val, em_loss_val):
         return False
 
 
-def reduce_lr(model, factor, min_lr):
+def _reduce_lr(model, factor, min_lr):
     """
     Manual implementation of https://keras.io/api/callbacks/reduce_lr_on_plateau/.
-    :param model: string, 'vae' or 'emulator'
+    :param model: keras model object
     :param factor: factor * old LR is the new LR
     :param min_lr: minimum allowed LR
     :return: None
@@ -104,7 +96,7 @@ def reduce_lr(model, factor, min_lr):
         K.set_value(model.optimizer.learning_rate, new_lr)
 
 
-def early_stop(patience, max_factor, vae_loss_val, em_loss_val):
+def _early_stop(patience, max_factor, em_loss_val):
     """
     Manual implementation of https://keras.io/api/callbacks/early_stopping/.
     :param patience: max number of epochs loss has not decreased
@@ -116,23 +108,13 @@ def early_stop(patience, max_factor, vae_loss_val, em_loss_val):
     if not len(em_loss_val) > patience:  # there is not enough training to compare
         return True
 
-    if vae_loss_val is not None:
-        vae_max_loss = vae_loss_val[-(1 + patience)] * max_factor  # the max acceptable loss
-    else:
-        vae_max_loss = None
     em_max_loss = em_loss_val[-(1 + patience)] * max_factor  # the max acceptable loss
 
     count = 0
     while count < patience:
         if em_loss_val[-(1 + count)] > em_max_loss:
-            if vae_loss_val is None:
-                count += 1
-                continue
-            elif vae_loss_val[-(1 + count)] > vae_max_loss:
-                count += 1
-                continue
-            else:
-                break
+            count += 1
+            continue
         else:
             break
     if count == patience:  # the last [patience] losses are all too large: stop training
@@ -142,7 +124,7 @@ def early_stop(patience, max_factor, vae_loss_val, em_loss_val):
         return True  # keep_going = True, continue
 
 
-def create_batch(x_train, y_train, amplitudes):
+def _create_batch(x_train, y_train, amplitudes):
     """
     Create minibatches.
     :param x_train: training/validation parameters
@@ -156,157 +138,6 @@ def create_batch(x_train, y_train, amplitudes):
     dataset = dataset.batch(batch_size, drop_remainder=True).prefetch(1)
     # Creates a Dataset that prefetches elements from this dataset
     return dataset
-
-
-def train_models(vae, emulator, em_lr, vae_lr, signal_train, dataset, val_dataset,
-                 epochs, vae_lr_factor, em_lr_factor, vae_min_lr, em_min_lr, vae_lr_patience, em_lr_patience,
-                 lr_max_factor, es_patience, es_max_factor):
-    """
-    Function that train the models simultaneously
-    :param vae: Keras model object, the VAE
-    :param emulator: Keras model object, the emulator
-    :param em_lr: float, initial emulator learning rate
-    :param vae_lr: float, initial VAE learning rate
-    :param signal_train: numpy array of training signals
-    :param dataset: batches from training dataset
-    :param val_dataset: batches from validation dataset
-    :param epochs: max number of epochs to train for, early stopping may stop it before
-    :param vae_lr_factor: factor * old LR (learning rate) is the new LR for the VAE
-    :param em_lr_factor: factor * old LR (learning rate) is the new LR for the emulator
-    :param vae_min_lr: minimum allowed LR for VAE
-    :param em_min_lr: minimum allowed LR for emulator
-    :param vae_lr_patience: max number of epochs loss has not decreased for the VAE before reducing LR
-    :param em_lr_patience: max number of epochs loss has not decreased for the emulator before reducing LR
-    :param lr_max_factor: max_factor * current loss is the max acceptable loss, a larger loss means that the counter
-    is added to, when it reaches the 'patience', the LR is reduced
-    :param es_patience: max number of epochs loss has not decreased before early stopping
-    :param es_max_factor: max_factor * current loss is the max acceptable loss, a larger loss for either the VAE or the
-    emulator means that the counter is added to, when it reaches the 'patience', early stopping is applied
-    :return tuple, four lists of losses as they change with epoch for the VAE (training loss and validation loss)
-    and emulator (training and validation) in that order
-    """
-    # initialize lists of training losses and validation losses
-    vae_loss = []
-    vae_loss_val = []
-    em_loss = []
-    em_loss_val = []
-
-    # Did the model loss plateau?
-    plateau_vae = False
-    plateau_em = False
-    vae_reduced_lr = 0  # epochs since last time lr was reduced
-    em_reduced_lr = 0  # epochs since last time lr was reduced
-
-    # compile the models
-    compile_VAE(vae, vae_lr)
-    compile_emulator(emulator, em_lr, signal_train)
-
-    @tf.function
-    def run_train_step(batch):
-        """
-        Function that trains the VAE and emulator for one batch. Returns the losses
-        for that specific batch.
-        """
-        params = batch[0]
-        signal = batch[1]
-        amp_raw = batch[2]  # amplitudes, raw because we need to reshape
-        amplitudes = tf.expand_dims(amp_raw, axis=1)  # reshape amplitudes
-        signal_amplitudes = tf.concat((signal, amplitudes), axis=1)  # both signal and amplitude
-        with tf.GradientTape() as tape:
-            vae_pred = vae(signal)  # apply VAE to signal
-            vae_batch_loss = vae.losses  # get the loss
-        # back-propagate losses for the VAE
-        vae_gradients = tape.gradient(vae_batch_loss, vae.trainable_weights)
-        vae.optimizer.apply_gradients(zip(vae_gradients, vae.trainable_weights))
-        # same procedure for emulator
-        with tf.GradientTape() as tape:
-            em_pred = emulator(params)
-            loss_function = em_loss_fcn(signal_train)
-            em_batch_loss = loss_function(signal_amplitudes, em_pred)
-        em_gradients = tape.gradient(em_batch_loss, emulator.trainable_weights)
-        emulator.optimizer.apply_gradients(zip(em_gradients, emulator.trainable_weights))
-        return vae_batch_loss, em_batch_loss
-
-    # the training loop
-    for i in range(epochs):
-        epoch = int(i + 1)
-        print("\nEpoch {}/{}".format(epoch, epochs))
-
-        # reduce lr if necessary
-        if plateau_vae and vae_reduced_lr >= 5:
-            reduce_lr(vae, vae_lr_factor, vae_min_lr)
-            vae_reduced_lr = 0
-        if plateau_em and em_reduced_lr >= 5:
-            reduce_lr(emulator, em_lr_factor, em_min_lr)
-            em_reduced_lr = 0
-
-        vae_batch_losses = []
-        val_vae_batch_losses = []
-        em_batch_losses = []
-        val_em_batch_losses = []
-
-        # loop through the batches and train the models on each batch
-        for batch in dataset:
-            vae_batch_loss, em_batch_loss = run_train_step(batch)
-            vae_batch_losses.append(vae_batch_loss)  # append VAE train loss for this batch
-            em_batch_losses.append(em_batch_loss)  # append emulator train loss for this batch
-
-        # loop through the validation batches, we are not training on them but
-        # just evaluating and tracking the performance
-        for batch in val_dataset:
-            param_val = batch[0]
-            signal_val = batch[1]
-            amp_val = tf.expand_dims(batch[2], axis=1)
-            val_signal_amplitudes = tf.concat((signal_val, amp_val), axis=1)
-            val_em_batch_loss = emulator.test_on_batch(param_val, val_signal_amplitudes)
-            val_vae_batch_loss = vae.test_on_batch(signal_val, signal_val)
-            val_vae_batch_losses.append(val_vae_batch_loss)
-            val_em_batch_losses.append(val_em_batch_loss)
-
-        vae_loss_epoch = K.mean(tf.convert_to_tensor(vae_batch_losses))  # average VAE train loss over this epoch
-        em_loss_epoch = K.mean(tf.convert_to_tensor(em_batch_losses))  # average emulator train loss
-        print('VAE train loss: {:.4f}'.format(vae_loss_epoch))
-        print('Emulator train loss: {:.4f}'.format(em_loss_epoch))
-
-        # in case a loss is NaN
-        # this is unusal, but not a big deal, just restart the training
-        # (otherwise the loss just stays NaN)
-        if np.isnan(vae_loss_epoch) or np.isnan(em_loss_epoch):
-            print("Loss is NaN, restart training")
-            break
-
-        # save each epoch loss to a list with all epochs
-        vae_loss.append(vae_loss_epoch)
-        em_loss.append(em_loss_epoch)
-
-        vae_loss_epoch_val = np.mean(val_vae_batch_losses)  # average VAE train loss over this epoch
-        em_loss_epoch_val = np.mean(val_em_batch_losses)  # average emulator train loss
-        vae_loss_val.append(vae_loss_epoch_val)
-        em_loss_val.append(em_loss_epoch_val)
-        print('VAE val loss: {:.4f}'.format(vae_loss_epoch_val))
-        print('Emulator val loss: {:.4f}'.format(em_loss_epoch_val))
-
-        # save weights
-        if epoch == 1:  # save first epoch
-            vae.save('checkpoints/best_vae')
-            emulator.save('checkpoints/best_em')
-        elif em_loss_val[-1] < np.min(em_loss_val[:-1]):  # performance is better than prev epoch
-            vae.save('checkpoints/best_vae')
-            emulator.save('checkpoints/best_em')
-
-        # early stopping?
-        keep_going = early_stop(es_patience, es_max_factor, vae_loss_val, em_loss_val)
-        if not keep_going:
-            break
-
-        # check if loss stopped decreasing
-        plateau_vae = plateau_check("vae", vae_lr_patience, lr_max_factor, vae_loss_val, em_loss_val)
-        plateau_em = plateau_check("emulator", em_lr_patience, lr_max_factor, vae_loss_val, em_loss_val)
-
-        vae_reduced_lr += 1
-        em_reduced_lr += 1
-
-    return vae_loss, vae_loss_val, em_loss, em_loss_val
 
 
 def train_direct_emulator(direct_emulator, em_lr, signal_train, dataset, val_dataset, epochs, em_lr_factor, em_min_lr,
@@ -338,7 +169,7 @@ def train_direct_emulator(direct_emulator, em_lr, signal_train, dataset, val_dat
     em_reduced_lr = 0  # epochs since last time lr was reduced
 
     # compile the models
-    compile_emulator(direct_emulator, em_lr, signal_train)
+    _compile_emulator(direct_emulator, em_lr, True, signal_train)
 
     @tf.function
     def run_train_step(batch):
@@ -353,11 +184,11 @@ def train_direct_emulator(direct_emulator, em_lr, signal_train, dataset, val_dat
         signal_amplitudes = tf.concat((signal, amplitudes), axis=1)  # both signal and amplitude
         with tf.GradientTape() as tape:
             em_pred = direct_emulator(params)
-            loss_function = em_loss_fcn(signal_train)
-            em_batch_loss = loss_function(signal_amplitudes, em_pred)
+            loss_function = _relative_mse_loss(signal_train)
+            _em_batch_loss = loss_function(signal_amplitudes, em_pred)
         em_gradients = tape.gradient(em_batch_loss, direct_emulator.trainable_weights)
         direct_emulator.optimizer.apply_gradients(zip(em_gradients, direct_emulator.trainable_weights))
-        return em_batch_loss
+        return _em_batch_loss
 
     # the training loop
     for i in range(epochs):
@@ -366,7 +197,7 @@ def train_direct_emulator(direct_emulator, em_lr, signal_train, dataset, val_dat
 
         # reduce lr if necessary
         if plateau_em and em_reduced_lr >= 5:
-            reduce_lr(direct_emulator, em_lr_factor, em_min_lr)
+            _reduce_lr(direct_emulator, em_lr_factor, em_min_lr)
             em_reduced_lr = 0
 
         em_batch_losses = []
@@ -411,14 +242,52 @@ def train_direct_emulator(direct_emulator, em_lr, signal_train, dataset, val_dat
             direct_emulator.save('checkpoints/best_direct_em')
 
         # early stopping?
-        keep_going = early_stop(es_patience, es_max_factor, None, em_loss_val)
+        keep_going = _early_stop(es_patience, es_max_factor, em_loss_val)
         if not keep_going:
             break
 
         # check if loss stopped decreasing
-        plateau_em = plateau_check("emulator", em_lr_patience, lr_max_factor, None, em_loss_val)
+        plateau_em = _plateau_check(em_lr_patience, lr_max_factor, em_loss_val)
 
         em_reduced_lr += 1
 
     return em_loss, em_loss_val
 
+
+def _train_autoencoder(autoencoder, signal_train, signal_val, epochs, lr_factor, lr_patience, lr_min_delta, min_lr,
+                       es_delta, es_patience):
+    reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=lr_factor, patience=lr_patience, min_delta=lr_min_delta,
+                                     min_lr=min_lr)
+    early_stop = EarlyStopping(monitor="val_loss", min_delta=es_delta, patience=es_patience, restore_best_weights=True)
+    y_train, y_val = pp.preproc(signal_train, signal_train), pp.preproc(signal_val, signal_train)
+    validation_set = (y_val, y_val)
+    hist = autoencoder.fit(x=y_train, y=y_train, batch_size=256, epochs=epochs, callbacks=[reduce_lr, early_stop],
+                           validation_data=validation_set, validation_batch_size=256)
+    loss, val_loss = hist.history['loss'], hist.history['val_loss']
+    return loss, val_loss
+
+
+def _train_emulator(emulator, encoder, signal_train, signal_val, par_train, par_val, epochs, lr_factor, lr_patience,
+                    lr_min_delta, min_lr, es_delta, es_patience):
+    reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=lr_factor, patience=lr_patience, min_delta=lr_min_delta,
+                                  min_lr=min_lr)
+    early_stop = EarlyStopping(monitor="val_loss", min_delta=es_delta, patience=es_patience, restore_best_weights=True)
+    y_train = encoder.predict(pp.preproc(signal_train, signal_train))
+    y_val = encoder.predict(pp.preproc(signal_val, signal_train))
+    X_train, X_val = pp.par_transform(par_train, par_train), pp.par_transform(par_val, par_train)
+    validation_set = (X_val, y_val)
+    hist = emulator.fit(x=X_train, y=y_train, batch_size=256, epochs=epochs, validation_data=validation_set,
+                        validation_batch_size=256, callbacks=[reduce_lr, early_stop])
+    loss, val_loss = hist.history['loss'], hist.history['val_loss']
+    return loss, val_loss
+
+
+def train_ae_emulator(autoencoder, encoder, emulator, signal_train, signal_val, par_train, par_val, epochs,
+                      ae_lr_factor, ae_lr_patience, ae_lr_min_delta, ae_min_lr, ae_es_delta, ae_es_patience,
+                      em_lr_factor, em_lr_patience, em_lr_min_delta, em_min_lr, em_es_delta, em_es_patience):
+    ae_loss, ae_val_loss = _train_autoencoder(autoencoder, signal_train, signal_val, epochs, ae_lr_factor,
+                                              ae_lr_patience, ae_lr_min_delta, ae_min_lr, ae_es_delta, ae_es_patience)
+    em_loss, em_val_loss = _train_emulator(emulator, encoder, signal_train, signal_val, par_train, par_val, epochs,
+                                           em_lr_factor, em_lr_patience, em_lr_min_delta, em_min_lr, em_es_delta,
+                                           em_es_patience)
+    return ae_loss, ae_val_loss, em_loss, em_val_loss
