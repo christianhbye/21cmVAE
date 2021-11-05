@@ -79,7 +79,7 @@ def build_autoencoder(layer_hps, activation_func='relu'):
     return autoencoder, encoder, decoder
 
 
-def build_ae_emulator(layer_hps):
+def build_ae_emulator(layer_hps, activation_func='relu'):
     em_input_par = Input(shape=(X_train.shape[1],), name='em_input')
     em_hidden_dims = layer_hps[3]
     for i, dim in enumerate(em_hidden_dims):
