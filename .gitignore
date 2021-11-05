@@ -2,4 +2,3 @@
 __pycache__/
 checkpoints/
 dataset_21cmVAE.h5
-21cmVAE/

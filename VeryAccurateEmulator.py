@@ -3,7 +3,7 @@ import numpy as np
 import tensorflow as tf
 import build_models as bm
 import preprocess as pp
-from training_tools import train_models, train_direct_emulator, create_batch, em_loss_fcn
+from training_tools import train_ae_emulator, train_direct_emulator, em_loss_fcn
 
 
 class VeryAccurateEmulator:
@@ -140,23 +140,9 @@ class VeryAccurateEmulator:
         # update the default models
         self.direct_emulator = direct_emulator
 
-        # Input variables
-        X_train = pp.par_transform(self.par_train, self.par_train)
-        X_val = pp.par_transform(self.par_val, self.par_train)
-        train_amplitudes = np.max(np.abs(self.signal_train), axis=-1)
-        val_amplitudes = np.max(np.abs(self.signal_val), axis=-1)
-
-        # Output variables
-        y_train = pp.preproc(self.signal_train, self.signal_train)
-        y_val = pp.preproc(self.signal_val, self.signal_train)
-
-        # create the training and validation minibatches
-        dataset = create_batch(X_train, y_train, train_amplitudes)
-        val_dataset = create_batch(X_val, y_val, val_amplitudes)
-
-        losses = train_direct_emulator(direct_emulator, self.em_lr, self.signal_train, dataset, val_dataset,
-                                       self.epochs, self.em_lr_factor, self.em_min_lr, self.em_lr_patience,
-                                       self.lr_max_factor, self.es_patience, self.es_max_factor)
+        losses = train_direct_emulator(direct_emulator, self.em_lr, self.signal_train, self.signal_val, self.par_train,
+                                       self.par_val, self.epochs, self.em_lr_factor, self.em_min_lr,
+                                       self.em_lr_patience, self.lr_max_factor, self.es_patience, self.es_max_factor)
 
         self.direct_em_train_losses = losses[0]
         self.direct_em_val_losses = losses[1]

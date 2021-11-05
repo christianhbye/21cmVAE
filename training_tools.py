@@ -25,6 +25,10 @@ def _relative_mse_loss(signal_train):
     return loss_function
 
 
+def em_loss_fcn(signal_train):
+    return _relative_mse_loss(signal_train)
+
+
 def _compile_model(model, lr, relative_mse=False, signal_train=None):
     """
     Function that compiles a model with a given learning rate and loss function and the Adam optimizer
@@ -140,8 +144,8 @@ def _create_batch(x_train, y_train, amplitudes):
     return dataset
 
 
-def train_direct_emulator(direct_emulator, em_lr, signal_train, dataset, val_dataset, epochs, em_lr_factor, em_min_lr,
-                          em_lr_patience, lr_max_factor, es_patience, es_max_factor):
+def train_direct_emulator(direct_emulator, em_lr, signal_train, signal_val, par_train, par_val, epochs, em_lr_factor,
+                          em_min_lr, em_lr_patience, lr_max_factor, es_patience, es_max_factor):
     """
     Function that trains the direct emulator
     :param direct_emulator: Keras model object, the direct emulator
@@ -170,6 +174,13 @@ def train_direct_emulator(direct_emulator, em_lr, signal_train, dataset, val_dat
 
     # compile the models
     _compile_emulator(direct_emulator, em_lr, True, signal_train)
+
+    X_train, X_val = pp.par_transform(par_train, par_train), pp.par_transform(par_val, par_train)
+    y_train, y_val = pp.preproc(signal_train, signal_train), pp.preproc(signal_val, signal_train)
+    train_amplitudes = np.max(np.abs(signal_train), axis=-1)
+    val_amplitudes = np.max(np.abs(signal_val), axis=-1)
+    dataset = _create_batch(X_train, y_train, train_amplitudes)
+    val_dataset = _create_batch(X_val, y_val, val_amplitudes)
 
     @tf.function
     def run_train_step(batch):
