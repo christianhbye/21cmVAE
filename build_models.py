@@ -41,14 +41,14 @@ def build_autoencoder(layer_hps, activation_func='relu'):
             input_layer = x  # subsequent layers take input from the previous layer
         # using dense (fully connected) layers
         x = Dense(dim, activation=activation_func, name='encoder_hidden_layer_' + str(i))(input_layer)
-    latent_dim = hps['latent_dim']  # dimensionality of latent layer
+    latent_dim = layer_hps[1]  # dimensionality of latent layer
     z = Dense(latent_dim, name='z_mean')(x)  # vanilla autoencoder
 
     # create the encoder
     encoder = Model(vae_input, z)
 
     # now, the same procedure for the decoder as for the encoder
-    decoding_hidden_dims = layer_hps[1]
+    decoding_hidden_dims = layer_hps[2]
     for i, dim in enumerate(decoding_hidden_dims):
         if i == 0:
             input_layer = z
@@ -81,7 +81,7 @@ def build_autoencoder(layer_hps, activation_func='relu'):
 
 def build_ae_emulator(layer_hps):
     em_input_par = Input(shape=(X_train.shape[1],), name='em_input')
-    em_hidden_dims = layer_hps[0]
+    em_hidden_dims = layer_hps[3]
     for i, dim in enumerate(em_hidden_dims):
         if i == 0:
             input_layer = em_input_par
