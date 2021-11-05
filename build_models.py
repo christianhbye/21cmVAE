@@ -21,9 +21,32 @@ def sampling(args):
     return z_mean + K.exp(0.5 * z_log_var) * epsilon
 
 
-def build_models(hps, layer_hps, signal_train, par_train, activation_func='relu'):
+def build_direct_emulator(layer_hps, signal_train, par_train, activation_func='relu'):
     """
-    Function that build the two neural networks.
+    Function that builds the emulator.
+    :param layer_hps: list, the hyperparameter controlling the number of layers and their dimensionalities
+    :param signal_train: numpy array of training signals
+    :param par_train: numpy array of training parameters
+    :param activation_func: str, name of a keras recognized activation function or a tf.keras.activations instance
+    (see https://keras.io/api/layers/activations/)
+    :return: the emulator as a keras model object
+    """
+    em_input_par = Input(shape=(par_train.shape[1],), name='em_input')
+    em_hidden_dims = layer_hps
+    for i, dim in enumerate(em_hidden_dims):
+        if i == 0:
+            input_layer = em_input_par
+        else:
+            input_layer = x
+        x = Dense(dim, activation=activation_func, name='em_hidden_layer_' + str(i))(input_layer)
+    output_par = Dense(signal_train.shape[1])(x)
+    emulator = Model(em_input_par, output_par, name="Emulator")
+    return emulator
+
+
+def build_ae_emulator(hps, layer_hps, signal_train, par_train, activation_func='relu'):
+    """
+    Function that builds the autoencoder and the emulator based onb the autoencoder described in Appendix A.
     :param hps: hyperparameters, a dictionary with values for the latent layer dimensionality, beta, and gamma
     :param layer_hps: the hyperparameters controlling the number of layers and their dimensionalities,
     packed into nested lists
@@ -112,27 +135,3 @@ def build_models(hps, layer_hps, signal_train, par_train, activation_func='relu'
     emulator = Model(em_input_par, em_output, name='emulator')
 
     return vae, emulator
-
-
-def build_direct_emulator(layer_hps, signal_train, par_train, activation_func='relu'):
-    """
-    Function that builds direct emulator without the VAE.
-    :param layer_hps: list, the hyperparameter controlling the number of layers and their dimensionalities
-    :param signal_train: numpy array of training signals
-    :param par_train: numpy array of training parameters
-    :param activation_func: str, name of a keras recognized activation function or a tf.keras.activations instance
-    (see https://keras.io/api/layers/activations/)
-    :return: the emulator as a keras model object
-    """
-    em_input_par = Input(shape=(par_train.shape[1],), name='em_input')
-    em_hidden_dims = layer_hps
-    for i, dim in enumerate(em_hidden_dims):
-        if i == 0:
-            input_layer = em_input_par
-        else:
-            input_layer = x
-        x = Dense(dim, activation=activation_func, name='em_hidden_layer_' + str(i))(input_layer)
-    output_par = Dense(signal_train.shape[1])(x)
-    emulator = Model(em_input_par, output_par, name="Emulator")
-    return emulator
-

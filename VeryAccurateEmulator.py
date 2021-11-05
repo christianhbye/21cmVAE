@@ -7,7 +7,7 @@ import preprocess as pp
 from training_tools import train_models, train_direct_emulator, create_batch, em_loss_fcn
 
 
-class VeryAccurateEmulator:
+class AutoEncoderEmulator:
     def __init__(self, vae=None, emulator=None):
         """
         :param vae: Keras model object, sets the default VAE if you already have a trained one
@@ -301,7 +301,7 @@ class VeryAccurateEmulator:
         return num / den
 
 
-class DirectEmulator:
+class VeryAccurateEmulator:
     def __init__(self, direct_emulator=None):
         """
         :param direct_emulator: Keras model object, sets the default direct emulator if you have one
