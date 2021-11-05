@@ -81,7 +81,7 @@ def build_autoencoder(layer_hps, activation_func='relu'):
 
 def build_ae_emulator(layer_hps):
     em_input_par = Input(shape=(X_train.shape[1],), name='em_input')
-    em_hidden_dims = layer_hps
+    em_hidden_dims = layer_hps[0]
     for i, dim in enumerate(em_hidden_dims):
         if i == 0:
             input_layer = em_input_par
@@ -89,6 +89,7 @@ def build_ae_emulator(layer_hps):
             input_layer = x
         x = Dense(dim, activation=activation_func, name='em_hidden_layer_' + str(i))(input_layer)
 
+    latent_dim = layer_hps[1]
     # the latent layer of the emulator
     autoencoder_par = Dense(latent_dim, name='em_autoencoder')(x)
 
