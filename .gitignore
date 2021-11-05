@@ -1,3 +1,4 @@
 .ipynb_checkpoints/
 __pycache__/
 checkpoints/
+dataset_21cmVAE.h5
