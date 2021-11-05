@@ -45,7 +45,7 @@ def build_autoencoder(layer_hps, activation_func='relu'):
     z = Dense(latent_dim, name='z_mean')(x)  # vanilla autoencoder
 
     # create the encoder
-    encoder = Model(vae_input, z)
+    encoder = Model(ae_input, z)
 
     # now, the same procedure for the decoder as for the encoder
     decoding_hidden_dims = layer_hps[2]
