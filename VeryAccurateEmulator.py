@@ -1,7 +1,6 @@
 import h5py
 import numpy as np
 import tensorflow as tf
-
 import build_models as bm
 import preprocess as pp
 from training_tools import train_models, train_direct_emulator, create_batch, em_loss_fcn
@@ -431,31 +430,15 @@ class AutoEncoderEmulator:
 
         # update the default models
         self.autoencoder = autoencoder
+        self.encoder = encoder
+        self.decoder = decoder
         self.emulator = emulator
 
-        # Input variables
-        X_train = pp.par_transform(self.par_train, self.par_train)
-        X_val = pp.par_transform(self.par_val, self.par_train)
-        train_amplitudes = np.max(np.abs(self.signal_train), axis=-1)
-        val_amplitudes = np.max(np.abs(self.signal_val), axis=-1)
-
-        # Output variables
-        y_train = pp.preproc(self.signal_train, self.signal_train)
-        y_val = pp.preproc(self.signal_val, self.signal_train)
-
-
-        #losses = train_models(vae, emulator, self.em_lr, self.vae_lr,
-  #                            self.signal_train, dataset, val_dataset, self.epochs, self.vae_lr_factor,
-   #                           self.em_lr_factor, self.vae_min_lr, self.em_min_lr, self.vae_lr_patience,
-   #                           self.em_lr_patience, self.lr_max_factor, self.es_patience, self.es_max_factor)
-        # train models should update the state of the autoencoder and the emulator so we should get the trained
-        # decoder here
-        losses = train_ae()
-        encoder =
-        decoder =
-        self.encoder, self.decoder = encoder, decoder
-        emtrue =
-        losses = train_em()
+        losses = train_ae_emulator(self.autoencoder, self.encoder, self.emulator, self.signal_train, self.signal_val,
+                                   self.par_train, self.par_val, self.epochs, self.ae_lr_factor, self.ae_lr_patience,
+                                   self.ae_lr_min_delta, self.ae_min_lr, self.ae_earlystop_delta, self.es_patience,
+                                   self.em_lr_factor, self.em_lr_patience, self.em_lr_min_delta, self.em_min_lr,
+                                   self.em_earlystop_delta, self.es_patience)
 
         self.ae_train_losses = losses[0]
         self.ae_val_losses = losses[1]
