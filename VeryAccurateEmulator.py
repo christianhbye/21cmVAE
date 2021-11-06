@@ -74,8 +74,7 @@ class VeryAccurateEmulator:
         :return: None
         """
         for key, values in kwargs.items():
-            if key not in set(
-                    ['direct_em_dims', 'activation_func']):
+            if key not in set(['direct_em_dims', 'activation_func']):
                 raise KeyError("Unexpected keyword argument in set_hyperparameters()")
 
         self.direct_em_dims = kwargs.pop('direct_em_dims', self.direct_em_dims)

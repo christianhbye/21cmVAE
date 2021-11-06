@@ -173,7 +173,7 @@ def train_direct_emulator(direct_emulator, em_lr, signal_train, signal_val, par_
     em_reduced_lr = 0  # epochs since last time lr was reduced
 
     # compile the models
-    _compile_emulator(direct_emulator, em_lr, True, signal_train)
+    _compile_model(direct_emulator, em_lr, True, signal_train)
 
     X_train, X_val = pp.par_transform(par_train, par_train), pp.par_transform(par_val, par_train)
     y_train, y_val = pp.preproc(signal_train, signal_train), pp.preproc(signal_val, signal_train)
@@ -197,7 +197,7 @@ def train_direct_emulator(direct_emulator, em_lr, signal_train, signal_val, par_
             em_pred = direct_emulator(params)
             loss_function = _relative_mse_loss(signal_train)
             _em_batch_loss = loss_function(signal_amplitudes, em_pred)
-        em_gradients = tape.gradient(em_batch_loss, direct_emulator.trainable_weights)
+        em_gradients = tape.gradient(_em_batch_loss, direct_emulator.trainable_weights)
         direct_emulator.optimizer.apply_gradients(zip(em_gradients, direct_emulator.trainable_weights))
         return _em_batch_loss
 
