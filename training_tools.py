@@ -7,6 +7,23 @@ import numpy as np
 import preprocess as pp
 
 
+# def _relative_mse_loss(signal_train):
+#     """
+#     The square of the FoM in the paper, in units of standard deviation
+#     since the signals are preproccesed. We need a wrapper function to be able to pass signal_train as an input param.
+#     :param signal_train: numpy array of training signals
+#     :param y_true: array, the true signal concatenated with the amplitude
+#     :param y_pred: array, the predicted signal (by the emulator)
+#     :return: the loss
+#     """
+#     def loss_function(y_true, y_pred):
+#         signal = y_true[:, 0:-1]  # the signal
+#         amplitude = y_true[:, -1]/tf.math.reduce_std(signal_train)  # amplitude
+#         loss = mse(y_pred, signal)  # loss is mean squared error ...
+#         loss /= K.square(amplitude)  # ... divided by square of amplitude
+#         return loss
+#     return loss_function
+
 def _relative_mse_loss(signal_train):
     """
     The square of the FoM in the paper, in units of standard deviation
@@ -17,10 +34,10 @@ def _relative_mse_loss(signal_train):
     :return: the loss
     """
     def loss_function(y_true, y_pred):
-        signal = y_true[:, 0:-1]  # the signal
-        amplitude = y_true[:, -1]/tf.math.reduce_std(signal_train)  # amplitude
-        loss = mse(y_pred, signal)  # loss is mean squared error ...
-        loss /= K.square(amplitude)  # ... divided by square of amplitude
+        signal = y_true + tf.convert_to_tensor(np.mean(signal_train, axis=0))
+        reduced_amp = tf.math.reduce_max(tf.abs(signal), axis=1, keepdims=True)
+        loss = mse(y_pred, y_true)  # loss is mean squared error ...
+        loss /= K.square(reduced_amp)  # ... divided by square of amplitude
         return loss
     return loss_function
 
@@ -173,12 +190,12 @@ def train_direct_emulator(direct_emulator, em_lr, signal_train, signal_val, par_
     em_reduced_lr = 0  # epochs since last time lr was reduced
 
     # compile the models
-    _compile_model(direct_emulator, em_lr, True, signal_train)
+    _compile_model(direct_emulator, em_lr, True, signal_train, signal_val)
 
     X_train, X_val = pp.par_transform(par_train, par_train), pp.par_transform(par_val, par_train)
     y_train, y_val = pp.preproc(signal_train, signal_train), pp.preproc(signal_val, signal_train)
-    train_amplitudes = np.max(np.abs(signal_train), axis=-1)
-    val_amplitudes = np.max(np.abs(signal_val), axis=-1)
+    train_amplitudes = np.max(np.abs(signal_train), axis=-1)/np.std(signal_train)
+    val_amplitudes = np.max(np.abs(signal_val), axis=-1)/np.std(signal_train)
     dataset = _create_batch(X_train, y_train, train_amplitudes)
     val_dataset = _create_batch(X_val, y_val, val_amplitudes)
 
@@ -190,13 +207,13 @@ def train_direct_emulator(direct_emulator, em_lr, signal_train, signal_val, par_
         """
         params = batch[0]
         signal = batch[1]
-        amp_raw = batch[2]  # amplitudes, raw because we need to reshape
-        amplitudes = tf.expand_dims(amp_raw, axis=1)  # reshape amplitudes
-        signal_amplitudes = tf.concat((signal, amplitudes), axis=1)  # both signal and amplitude
+        amp = batch[2]  # amplitudes, raw because we need to reshape
+        #amplitudes = tf.expand_dims(amp_raw, axis=1)  # reshape amplitudes
+        #signal_amplitudes = tf.concat((signal, amplitudes), axis=1)  # both signal and amplitude
         with tf.GradientTape() as tape:
             em_pred = direct_emulator(params)
-            loss_function = _relative_mse_loss(signal_train)
-            _em_batch_loss = loss_function(signal_amplitudes, em_pred)
+            loss_function = _relative_mse_loss(amp)
+            _em_batch_loss = loss_function(signal, em_pred)
         em_gradients = tape.gradient(_em_batch_loss, direct_emulator.trainable_weights)
         direct_emulator.optimizer.apply_gradients(zip(em_gradients, direct_emulator.trainable_weights))
         return _em_batch_loss
@@ -224,9 +241,11 @@ def train_direct_emulator(direct_emulator, em_lr, signal_train, signal_val, par_
         for batch in val_dataset:
             param_val = batch[0]
             signal_val = batch[1]
-            amp_val = tf.expand_dims(batch[2], axis=1)
-            val_signal_amplitudes = tf.concat((signal_val, amp_val), axis=1)
-            val_em_batch_loss = direct_emulator.test_on_batch(param_val, val_signal_amplitudes)
+            amp_val = batch[2]
+            #val_signal_amplitudes = tf.concat((signal_val, amp_val), axis=1)
+            #val_em_batch_loss = direct_emulator.test_on_batch(param_val, val_signal_amplitudes)
+            val_loss_function = _relative_mse_loss(amp_val)
+            val_em_batch_loss = val_loss_function(signal_val, direct_emulator(param_val))
             val_em_batch_losses.append(val_em_batch_loss)
 
         em_loss_epoch = K.mean(tf.convert_to_tensor(em_batch_losses))  # average emulator train loss
@@ -265,11 +284,12 @@ def train_direct_emulator(direct_emulator, em_lr, signal_train, signal_val, par_
     return em_loss, em_loss_val
 
 
-def _train_autoencoder(autoencoder, signal_train, signal_val, epochs, lr_factor, lr_patience, lr_min_delta, min_lr,
+def _train_autoencoder(autoencoder, signal_train, signal_val, epochs, initial_lr, lr_factor, lr_patience, lr_min_delta, min_lr,
                        es_delta, es_patience):
+    _compile_model(autoencoder, initial_lr, relative_mse=True, signal_train=signal_train)
     reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=lr_factor, patience=lr_patience, min_delta=lr_min_delta,
-                                     min_lr=min_lr)
-    early_stop = EarlyStopping(monitor="val_loss", min_delta=es_delta, patience=es_patience, restore_best_weights=True)
+                                  min_lr=min_lr)
+    early_stop = EarlyStopping(monitor='val_loss', min_delta=es_delta, patience=es_patience, restore_best_weights=True)
     y_train, y_val = pp.preproc(signal_train, signal_train), pp.preproc(signal_val, signal_train)
     validation_set = (y_val, y_val)
     hist = autoencoder.fit(x=y_train, y=y_train, batch_size=256, epochs=epochs, callbacks=[reduce_lr, early_stop],
@@ -278,8 +298,9 @@ def _train_autoencoder(autoencoder, signal_train, signal_val, epochs, lr_factor,
     return loss, val_loss
 
 
-def _train_emulator(emulator, encoder, signal_train, signal_val, par_train, par_val, epochs, lr_factor, lr_patience,
+def _train_emulator(emulator, encoder, signal_train, signal_val, par_train, par_val, epochs, initial_lr, lr_factor, lr_patience,
                     lr_min_delta, min_lr, es_delta, es_patience):
+    _compile_model(emulator, initial_lr, relative_mse=False, signal_train=None)
     reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=lr_factor, patience=lr_patience, min_delta=lr_min_delta,
                                   min_lr=min_lr)
     early_stop = EarlyStopping(monitor="val_loss", min_delta=es_delta, patience=es_patience, restore_best_weights=True)
@@ -293,12 +314,12 @@ def _train_emulator(emulator, encoder, signal_train, signal_val, par_train, par_
     return loss, val_loss
 
 
-def train_ae_emulator(autoencoder, encoder, emulator, signal_train, signal_val, par_train, par_val, epochs,
+def train_ae_emulator(autoencoder, encoder, emulator, signal_train, signal_val, par_train, par_val, epochs, ae_lr, em_lr,
                       ae_lr_factor, ae_lr_patience, ae_lr_min_delta, ae_min_lr, ae_es_delta, ae_es_patience,
                       em_lr_factor, em_lr_patience, em_lr_min_delta, em_min_lr, em_es_delta, em_es_patience):
-    ae_loss, ae_val_loss = _train_autoencoder(autoencoder, signal_train, signal_val, epochs, ae_lr_factor,
+    ae_loss, ae_val_loss = _train_autoencoder(autoencoder, signal_train, signal_val, epochs, ae_lr, ae_lr_factor,
                                               ae_lr_patience, ae_lr_min_delta, ae_min_lr, ae_es_delta, ae_es_patience)
-    em_loss, em_val_loss = _train_emulator(emulator, encoder, signal_train, signal_val, par_train, par_val, epochs,
+    em_loss, em_val_loss = _train_emulator(emulator, encoder, signal_train, signal_val, par_train, par_val, epochs, em_lr,
                                            em_lr_factor, em_lr_patience, em_lr_min_delta, em_min_lr, em_es_delta,
                                            em_es_patience)
     return ae_loss, ae_val_loss, em_loss, em_val_loss

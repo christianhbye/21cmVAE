@@ -134,7 +134,7 @@ class VeryAccurateEmulator:
 
         # build direct emulator
         direct_emulator = bm.build_direct_emulator(self.direct_em_dims, self.signal_train, self.par_train,
-                                                self.activation_func)
+                                                   self.activation_func)
 
         # update the default models
         self.direct_emulator = direct_emulator
@@ -282,8 +282,8 @@ class AutoEncoderEmulator:
         self.em_lr_patience = 5
         self.em_min_lr = 1e-6
         # if the loss doesn't decrease by more than this, LR is reduced:
-        self.ae_min_delta = 1e-5
-        self.em_min_delta = 1e-4
+        self.ae_lr_min_delta = 1e-5
+        self.em_lr_min_delta = 1e-4
         # for early stopping
         self.es_patience = 15  # number of epochs to wait before stopping training
         # if the loss doesn't decrease by more than this, training is stopped:
@@ -394,7 +394,7 @@ class AutoEncoderEmulator:
         self.ae_lr = kwargs.pop('ae_lr', self.ae_lr)
         self.em_lr = kwargs.pop('em_lr', self.em_lr)
         self.epochs = kwargs.pop('epochs', self.epochs)
-        self.ae_min_delta = kwargs.pop('ae_min_delta', self.ae_min_delta)
+        self.ae_lr_min_delta = kwargs.pop('ae_min_delta', self.ae_lr_min_delta)
         self.ae_earlystop_delta = kwargs.pop('ae_earlystop_delta', self.ae_earlystop_delta)
         self.ae_lr_factor = kwargs.pop('ae_lr_factor', self.ae_lr_factor)
         self.ae_lr_patience = kwargs.pop('ae_lr_patience', self.ae_lr_patience)
@@ -402,7 +402,7 @@ class AutoEncoderEmulator:
         self.em_lr_factor = kwargs.pop('em_lr_factor', self.em_lr_factor)
         self.em_lr_patience = kwargs.pop('em_lr_patience', self.em_lr_patience)
         self.em_min_lr = kwargs.pop('em_min_lr', self.em_min_lr)
-        self.em_min_delta = kwargs.pop('em_min_delta', self.em_min_delta)
+        self.em_lr_min_delta = kwargs.pop('em_min_delta', self.em_lr_min_delta)
         self.em_earlystop_delta = kwargs.pop('em_earlystop_delta', self.em_earlystop_delta)
         self.es_patience = kwargs.pop('es_patience', self.es_patience)
 
@@ -410,8 +410,8 @@ class AutoEncoderEmulator:
         layer_hps = [self.encoder_dims, self.latent_dim, self.decoder_dims, self.em_dims]
 
         # build autoencoder and emulator
-        autoencoder, encoder, decoder = bm.build_autoencoder(layer_hps, self.activation_func)
-        emulator = bm.build_ae_emulator(layer_hps, self.activation_func)
+        autoencoder, encoder, decoder = bm.build_autoencoder(layer_hps,self.signal_train, self.activation_func)
+        emulator = bm.build_ae_emulator(layer_hps, self.par_train, self.activation_func)
 
         # update the default models
         self.autoencoder = autoencoder
@@ -420,7 +420,7 @@ class AutoEncoderEmulator:
         self.emulator = emulator
 
         losses = train_ae_emulator(self.autoencoder, self.encoder, self.emulator, self.signal_train, self.signal_val,
-                                   self.par_train, self.par_val, self.epochs, self.ae_lr_factor, self.ae_lr_patience,
+                                   self.par_train, self.par_val, self.epochs, self.ae_lr, self.em_lr, self.ae_lr_factor, self.ae_lr_patience,
                                    self.ae_lr_min_delta, self.ae_min_lr, self.ae_earlystop_delta, self.es_patience,
                                    self.em_lr_factor, self.em_lr_patience, self.em_lr_min_delta, self.em_min_lr,
                                    self.em_earlystop_delta, self.es_patience)
