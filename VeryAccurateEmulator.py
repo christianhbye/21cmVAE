@@ -1,11 +1,14 @@
 import h5py
 import numpy as np
+import os
 import tensorflow as tf
 
 import build_models as bm
 import preprocess as pp
 from training_tools import train_emulator, train_ae_emulator, em_loss_fcn
 
+SCRIPT_PATH = os.path.realpath(__file__)[:-len('VeryAccurateEmulator.py')]
+print(SCRIPT_PATH)
 
 class VeryAccurateEmulator:
     def __init__(self, **kwargs):
@@ -14,7 +17,7 @@ class VeryAccurateEmulator:
         :return: None
         """
         # initialize training set, validation set, and test set variables
-        with h5py.File('dataset_21cmVAE.h5', 'r') as hf:
+        with h5py.File(SCRIPT_PATH + 'dataset_21cmVAE.h5', 'r') as hf:
             self.signal_train = hf['signal_train'][:]
             self.signal_val = hf['signal_val'][:]
             self.signal_test = hf['signal_test'][:]
@@ -47,8 +50,8 @@ class VeryAccurateEmulator:
                 raise KeyError("Unexpected keyword argument passed to class VeryAccurateEmulator")
         
         # the default emulator is 21cmVAE:
-        self.emulator = kwargs.pop('emulator', tf.keras.models.load_model('models/emulator.h5',
-                                                                          custom_objects={'em_loss_fcn': em_loss_fcn}))
+        self.emulator = kwargs.pop('emulator', tf.keras.models.load_model(SCRIPT_PATH + 'models/emulator.h5',
+                                                                          custom_objects={'loss_function': em_loss_fcn(self.signal_train)}))
         
         # initialize lists with losses, these get updated when models are trained
         self.train_losses = []  # training set losses
@@ -288,13 +291,6 @@ class AutoEncoderEmulator:
             else:
                 assert ae == kwargs['autoencoder'], 'The Autoencoder does not match the Encoder and Decoder!'
         
-        # the default models are the pretrained ones
-        model_path = 'models/autoencoder_based_emulator/'
-        self.autoencoder = kwargs.pop('autoencoder', tf.keras.models.load_model(model_path+'autoencoder.h5'))
-        self.encoder = kwargs.pop('encoder', tf.keras.models.load_model(model_path+'encoder.h5'))
-        self.decoder = kwargs.pop('decoder', tf.keras.models.load_model(model_path+'decoder.h5'))
-        self.emulator = kwargs.pop('emulator', tf.keras.models.load_model(model_path+'ae_emulator.h5',
-                                                                          custom_objects={'em_loss_fcn': em_loss_fcn}))
         # initialize training set, validation set, and test set variables
         with h5py.File('dataset_21cmVAE.h5', 'r') as hf:
             self.signal_train = hf['signal_train'][:]
@@ -305,6 +301,15 @@ class AutoEncoderEmulator:
             self.par_test = hf['par_test'][:]
 
         self.par_labels = ['fstar', 'Vc', 'fx', 'tau', 'alpha', 'nu_min', 'Rmfp']
+        
+        # the default models are the pretrained ones
+        model_path = SCRIPT_PATH + 'models/autoencoder_based_emulator/'
+        self.autoencoder = kwargs.pop('autoencoder', tf.keras.models.load_model(model_path+'autoencoder.h5',
+                                                                                custom_objects={'loss_fcn':em_loss_fcn(self.signal_train)}))
+        self.encoder = kwargs.pop('encoder', tf.keras.models.load_model(model_path+'encoder.h5'))
+        self.decoder = kwargs.pop('decoder', tf.keras.models.load_model(model_path+'decoder.h5'))
+        self.emulator = kwargs.pop('emulator', tf.keras.models.load_model(model_path+'ae_emulator.h5',
+                                                                          custom_objects={'loss_fcn':em_loss_fcn(self.signal_train)}))
 
         # initialize standard hyperparameters (used for the pretrained model)
         self.latent_dim = 9
