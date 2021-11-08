@@ -8,7 +8,6 @@ import preprocess as pp
 from training_tools import train_emulator, train_ae_emulator, em_loss_fcn
 
 SCRIPT_PATH = os.path.realpath(__file__)[:-len('VeryAccurateEmulator.py')]
-print(SCRIPT_PATH)
 
 class VeryAccurateEmulator:
     def __init__(self, **kwargs):
