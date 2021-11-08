@@ -337,8 +337,12 @@ def train_ae_emulator(autoencoder, encoder, emulator, signal_train, signal_val, 
     print('Train Autoencoder')
     ae_loss, ae_val_loss = _train_autoencoder(autoencoder, signal_train, signal_val, epochs, ae_lr, ae_lr_factor,
                                               ae_lr_patience, ae_lr_min_delta, ae_min_lr, ae_es_delta, ae_es_patience)
+    if len(ae_loss) < epochs:
+            print('Early Stopping')
     print('Train Emulator')
     em_loss, em_val_loss = _train_emulator(emulator, encoder, signal_train, signal_val, par_train, par_val, epochs, em_lr,
                                            em_lr_factor, em_lr_patience, em_lr_min_delta, em_min_lr, em_es_delta,
                                            em_es_patience)
+    if len(em_loss) < epochs:
+            print('Early Stopping')
     return ae_loss, ae_val_loss, em_loss, em_val_loss

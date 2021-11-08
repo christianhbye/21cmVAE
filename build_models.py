@@ -1,7 +1,7 @@
 import numpy as np
 from tensorflow.keras import backend as K
 from tensorflow.keras.losses import mse
-from tensorflow.keras.layers import Input, Dense, Lambda
+from tensorflow.keras.layers import Input, Dense
 from tensorflow.keras.models import Model
 from tensorflow.keras import optimizers
 import tensorflow as tf
@@ -45,7 +45,7 @@ def build_autoencoder(layer_hps, signal_train, activation_func='relu'):
     z = Dense(latent_dim, name='z_mean')(x)  # vanilla autoencoder
 
     # create the encoder
-    encoder = Model(ae_input, z)
+    encoder = Model(ae_input, z, name='Encoder')
 
     # now, the same procedure for the decoder as for the encoder
     decoding_hidden_dims = layer_hps[2]
@@ -75,7 +75,7 @@ def build_autoencoder(layer_hps, signal_train, activation_func='relu'):
         else:
             input = y
         y = layer(input)
-    decoder = Model(encoded_input, y)
+    decoder = Model(encoded_input, y, name='Decoder')
     return autoencoder, encoder, decoder
 
 
@@ -92,5 +92,5 @@ def build_ae_emulator(layer_hps, par_train, activation_func='relu'):
     latent_dim = layer_hps[1]
     # the latent layer of the emulator
     autoencoder_par = Dense(latent_dim, name='em_autoencoder')(x)
-    emulator = Model(em_input_par, autoencoder_par, name='AE-based Emulator')
+    emulator = Model(em_input_par, autoencoder_par, name='AE_Emulator')
     return emulator
