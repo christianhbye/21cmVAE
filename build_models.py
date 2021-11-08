@@ -92,5 +92,5 @@ def build_ae_emulator(layer_hps, par_train, activation_func='relu'):
     latent_dim = layer_hps[1]
     # the latent layer of the emulator
     autoencoder_par = Dense(latent_dim, name='em_autoencoder')(x)
-    emulator = Model(em_input_par, autoencoder_par)
+    emulator = Model(em_input_par, autoencoder_par, name='AE-based Emulator')
     return emulator

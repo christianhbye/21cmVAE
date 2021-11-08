@@ -65,6 +65,7 @@ def _compile_model(model, lr, relative_mse=False, signal_train=None):
     else:
         loss_fcn = mse
     model.compile(optimizer=optimizer, loss=loss_fcn)
+    print('Model Compiled: ' + model.name)
 
 
 # def _plateau_check(patience, max_factor, em_loss_val):

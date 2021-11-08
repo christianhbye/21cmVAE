@@ -32,15 +32,15 @@ class VeryAccurateEmulator:
         self.learning_rate = 0.01  # initial learning rate for emulator
 
         # Parameters that control the learning rate schedule during training:
-        self.lr_factor = 0.7
+        self.lr_factor = 0.9
         self.lr_patience = 5
         self.min_lr = 1e-6
         # if the loss doesn't by more than this, LR is reduced:
-        self.lr_min_delta = 1e-4
+        self.lr_min_delta = 1e-8
         # for early stopping
         self.es_patience = 15  # number of epochs to wait before stopping training
         # if the loss doesn't decrease to less than this factor, training is stopped:
-        self.es_min_delta = 1e-4
+        self.es_min_delta = 5e-10
 
         for key, values in kwargs.items():
             if key not in set(['emulator']):
@@ -143,6 +143,8 @@ class VeryAccurateEmulator:
 
         self.train_losses = losses[0]
         self.val_losses = losses[1]
+        if len(losses[0]) < self.epochs:
+            print('Early Stopping')
 
     def predict(self, params):
         """
