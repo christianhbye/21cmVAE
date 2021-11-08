@@ -304,12 +304,14 @@ class AutoEncoderEmulator:
         
         # the default models are the pretrained ones
         model_path = SCRIPT_PATH + 'models/autoencoder_based_emulator/'
-        self.autoencoder = kwargs.pop('autoencoder', tf.keras.models.load_model(model_path+'autoencoder.h5',
-                                                                                custom_objects={'loss_fcn':em_loss_fcn(self.signal_train)}))
+        self.autoencoder = kwargs.pop('autoencoder',
+                                      tf.keras.models.load_model(
+                                          model_path+'autoencoder.h5', custom_objects={'loss_function': em_loss_fcn(self.signal_train)}
+                                      )
+                                     )
         self.encoder = kwargs.pop('encoder', tf.keras.models.load_model(model_path+'encoder.h5'))
         self.decoder = kwargs.pop('decoder', tf.keras.models.load_model(model_path+'decoder.h5'))
-        self.emulator = kwargs.pop('emulator', tf.keras.models.load_model(model_path+'ae_emulator.h5',
-                                                                          custom_objects={'loss_fcn':em_loss_fcn(self.signal_train)}))
+        self.emulator = kwargs.pop('emulator', tf.keras.models.load_model(model_path+'ae_emulator.h5'))
 
         # initialize standard hyperparameters (used for the pretrained model)
         self.latent_dim = 9
