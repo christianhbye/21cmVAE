@@ -19,18 +19,26 @@ def build_direct_emulator(layer_hps, signal_train, par_train, activation_func='r
     """
     em_input_par = Input(shape=(par_train.shape[1],), name='em_input')
     em_hidden_dims = layer_hps
-    for i, dim in enumerate(em_hidden_dims):
+    for i, dim in enumerate(em_hidden_dims):  # add hidden layers with the specified dimensions one by one
         if i == 0:
             input_layer = em_input_par
         else:
             input_layer = x
         x = Dense(dim, activation=activation_func, name='em_hidden_layer_' + str(i))(input_layer)
     output_par = Dense(signal_train.shape[1])(x)
-    emulator = Model(em_input_par, output_par, name="Emulator")
+    emulator = Model(em_input_par, output_par, name='Emulator')
     return emulator
 
 
 def build_autoencoder(layer_hps, signal_train, activation_func='relu'):
+    """
+    Function that builds the autoencoder.
+    :param layer_hps: list, the hyperparameter controlling the number of layers and their dimensionalities
+    :param signal_train: numpy array of training signals
+    :param activation_func: str, name of a keras recognized activation function or a tf.keras.activations instance
+    (see https://keras.io/api/layers/activations/)
+    :return: the autoencoder as a keras model object
+    """
     encoding_hidden_dims = layer_hps[0]  # the layers of the encoder
     ae_input = Input(shape=(signal_train.shape[1],))  # input layer for autoencoder
     # loop over the number of layers and build the encoder with layers of the given dimensions
@@ -80,17 +88,24 @@ def build_autoencoder(layer_hps, signal_train, activation_func='relu'):
 
 
 def build_ae_emulator(layer_hps, par_train, activation_func='relu'):
+    """
+    Function that builds the autoencoder-based emulator.
+    :param layer_hps: list, the hyperparameter controlling the number of layers and their dimensionalities
+    :param par_train: numpy array of training parameters
+    :param activation_func: str, name of a keras recognized activation function or a tf.keras.activations instance
+    (see https://keras.io/api/layers/activations/)
+    :return: the emulator as a keras model object
+    """
     em_input_par = Input(shape=(par_train.shape[1],), name='em_input')
     em_hidden_dims = layer_hps[3]
-    for i, dim in enumerate(em_hidden_dims):
+    for i, dim in enumerate(em_hidden_dims):  # add hidden layers one by one
         if i == 0:
             input_layer = em_input_par
         else:
             input_layer = x
         x = Dense(dim, activation=activation_func, name='em_hidden_layer_' + str(i))(input_layer)
 
-    latent_dim = layer_hps[1]
-    # the latent layer of the emulator
+    latent_dim = layer_hps[1]  # the latent layer of the emulator
     autoencoder_par = Dense(latent_dim, name='em_autoencoder')(x)
     emulator = Model(em_input_par, autoencoder_par, name='AE_Emulator')
     return emulator
