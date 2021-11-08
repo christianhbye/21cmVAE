@@ -7,9 +7,9 @@ from training_tools import train_emulator, train_ae_emulator, em_loss_fcn
 
 
 class VeryAccurateEmulator:
-    def __init__(self, emulator=None):
+    def __init__(self, **kwargs):
         """
-        :param direct_emulator: Keras model object, sets the default direct emulator if you have one
+        :param emulator: Keras model object, sets the default direct emulator if you have one
         :return None
         """
         # initialize training set, validation set, and test set variables
