@@ -26,10 +26,6 @@ with h5py.File('dataset_21cmVAE.h5', 'r') as hf:
 
 par_labels = ['fstar', 'Vc', 'fx', 'tau', 'alpha', 'nu_min', 'Rmfp']
 
-train_amplitudes = np.max(np.abs(signal_train), axis=-1)
-val_amplitudes = np.max(np.abs(signal_val), axis=-1)
-test_amplitudes = np.max(np.abs(signal_test), axis=-1)
-
 signal_train_preproc = pp.preproc(signal_train, signal_train)
 signal_val_preproc = pp.preproc(signal_val, signal_train)
 signal_test_preproc = pp.preproc(signal_test, signal_train)
@@ -46,26 +42,15 @@ hidden_dim_step = 64 # step size
 activation_func = 'relu'
 em_lr = 0.01
 
-# Reduce LR
-em_lr_factor = 0.9
+# Reduce LR callback (https://keras.io/api/callbacks/reduce_lr_on_plateau/)
+em_lr_factor = 0.95
 em_lr_patience = 5
-em_min_lr = 1e-6
-lr_min_delta = 1e-8
+em_min_lr = 1e-4
+lr_min_delta = 5e-9
 
-# for early stopping
+# for early stopping (https://keras.io/api/callbacks/early_stopping/)
 early_stop_patience = 15
-es_min_delta = 1e-9
-
-'''
-Random hp grid search. Input params are tuples of the form (min, step_size, max_step) for the given hp.
-The possible outcomes are of the form min + k*step_size, 0 <= k <= max_step.
-latent_dim: dimensionality of latent space
-hidden_dims: dimnesionality of all hidden layers
-no_encoder_layers = number of encoder layers (VAE)
-no_decoding_layers = number of decoder layers (shared between emulator and VAE)
-beta, gamma: for vae loss function
-no_em_layers = number of hidden layers between input params and latent space (emulator) 
-'''
+es_min_delta = 1e-10
 
 
 def generate_hp(min_val, step_size, max_step):
@@ -76,15 +61,15 @@ def generate_hp(min_val, step_size, max_step):
     :param max_step: int, max multiple of step_size that can be added to min
     :return: float, the hyperparameter
     """
-    step = np.random.randint(0, max_step)
+    step = np.random.randint(0, max_step+1)
     return min_val + step * step_size
 
 
 def generate_layer_hps(no_hidden_layers=(min_hidden_layers, h_layer_step, max_step_h_layers),
                        hidden_dims=(min_hidden_dim, hidden_dim_step, max_step_hidden_dim)):
     """
-    Get the hyperparameters that control the architecture, i.e. the number of layers and their dimensions. Again,
-    input must be tuples on the form (min, step size, max number of steps).
+    Get the hyperparameters that control the architecture, i.e. the number of layers and their dimensions. Input must be tuples of the form
+    (min, step size, max number of steps).
     :param no_hidden_layers: Number of emulator layers
     :param hidden_dims: Dimensionality of the layers
     :return: tuple of lists, giving the dimensionality of each layer for the encoder, decoder, and emulator
