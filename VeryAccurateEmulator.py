@@ -3,11 +3,11 @@ import numpy as np
 import tensorflow as tf
 import build_models as bm
 import preprocess as pp
-from training_tools import train_ae_emulator, train_direct_emulator, em_loss_fcn
+from training_tools import train_emulator, train_ae_emulator, em_loss_fcn
 
 
 class VeryAccurateEmulator:
-    def __init__(self, direct_emulator=None):
+    def __init__(self, emulator=None):
         """
         :param direct_emulator: Keras model object, sets the default direct emulator if you have one
         :return None
@@ -24,33 +24,32 @@ class VeryAccurateEmulator:
         self.par_labels = ['fstar', 'Vc', 'fx', 'tau', 'alpha', 'nu_min', 'Rmfp']
 
         # initialize standard hyperparameters (used for the pretrained model)
-        self.direct_em_dims = [288, 352, 288, 224]
+        self.hidden_dims = [288, 352, 288, 224]
         self.activation_func = 'relu'  # activation function in all hidden layers
 
         # initialize parameters for training
         self.epochs = 350  # max number of epochs (can be less due to early stopping)
-        self.em_lr = 0.01  # initial learning rate for emulator
+        self.learning_rate = 0.01  # initial learning rate for emulator
 
         # Parameters that control the learning rate schedule during training:
-        self.em_lr_factor = 0.7
-        self.em_lr_patience = 5
-        self.em_min_lr = 1e-6
-        # if the loss doesn't decrease to less than this factor, LR is reduced:
-        self.lr_max_factor = 0.95
+        self.lr_factor = 0.7
+        self.lr_patience = 5
+        self.min_lr = 1e-6
+        # if the loss doesn't by more than this, LR is reduced:
+        self.lr_min_delta = 1e-4
         # for early stopping
         self.es_patience = 15  # number of epochs to wait before stopping training
         # if the loss doesn't decrease to less than this factor, training is stopped:
-        self.es_max_factor = 0.99
+        self.es_min_delta = 1e-4
 
-        if direct_emulator:
-            self.direct_emulator = direct_emulator
-        else:
-            self.direct_emulator = tf.keras.models.load_model('models/emulator.h5',
-                                                              custom_objects={'em_loss_fcn': em_loss_fcn})
-
+        for key, values in kwargs.items():
+            if key not in set(['emulator']):
+                raise KeyError("Unexpected keyword argument passed to class VeryAccurateEmulator")
+        self.emulator = kwargs.pop('emulator', tf.keras.models.load_model('models/emulator.h5',
+                                                                          custom_objects={'em_loss_fcn': em_loss_fcn}))
         # initialize lists with losses, these get updated when models are trained
-        self.direct_em_train_losses = []  # training set losses for direct emulator
-        self.direct_em_val_losses = []  # validation set losses for direct emulator
+        self.train_losses = []  # training set losses for direct emulator
+        self.val_losses = []  # validation set losses for direct emulator
 
         # sampling redshifts: it is possible to train with signals that are not sampled with the same resolution
         # or across the same redshift/frequency range. IN that case, these properties should be updated.
@@ -77,7 +76,7 @@ class VeryAccurateEmulator:
             if key not in set(['direct_em_dims', 'activation_func']):
                 raise KeyError("Unexpected keyword argument in set_hyperparameters()")
 
-        self.direct_em_dims = kwargs.pop('direct_em_dims', self.direct_em_dims)
+        self.hidden_dims = kwargs.pop('hidden_dims', self.hidden_dims)
         self.activation_func = kwargs.pop('activation_function', self.activation_func)
 
         return None
@@ -88,7 +87,7 @@ class VeryAccurateEmulator:
         :return: None
         """
         print('Hyperparameters are set to:')
-        print('Direct emulator dimensions:', self.direct_em_dims)
+        print('Direct emulator hidden dimensions:', self.hidden_dims)
         print('Activation function:', self.activation_func)
 
     def train(self, **kwargs):
@@ -114,8 +113,8 @@ class VeryAccurateEmulator:
         """
         for key, values in kwargs.items():
             if key not in set(
-                    ['signal_train', 'par_train', 'signal_val', 'par_val', 'em_lr', 'epochs',
-                     'em_lr_factor', 'em_lr_patience', 'em_min_lr', 'lr_max_factor', 'es_patience', 'es_max_factor']):
+                    ['signal_train', 'par_train', 'signal_val', 'par_val', 'learning_rate', 'epochs',
+                     'lr_factor', 'lr_patience', 'min_lr', 'lr_min_delta', 'es_patience', 'es_min_delta']):
                 raise KeyError("Unexpected keyword argument in train()")
 
         # update the properties
@@ -123,28 +122,27 @@ class VeryAccurateEmulator:
         self.par_train = kwargs.pop('par_train', self.par_train)
         self.signal_val = kwargs.pop('signal_val', self.signal_val)
         self.par_val = kwargs.pop('par_val', self.par_val)
-        self.em_lr = kwargs.pop('em_lr', self.em_lr)
+        self.learning_rate = kwargs.pop('learning_rate', self.learning_rate)
         self.epochs = kwargs.pop('epochs', self.epochs)
-        self.em_lr_factor = kwargs.pop('em_lr_factor', self.em_lr_factor)
-        self.em_lr_patience = kwargs.pop('em_lr_patience', self.em_lr_patience)
-        self.em_min_lr = kwargs.pop('em_min_lr', self.em_min_lr)
-        self.lr_max_factor = kwargs.pop('lr_max_factor', self.lr_max_factor)
+        self.lr_factor = kwargs.pop('lr_factor', self.lr_factor)
+        self.lr_patience = kwargs.pop('lr_patience', self.lr_patience)
+        self.min_lr = kwargs.pop('min_lr', self.min_lr)
+        self.lr_min_delta = kwargs.pop('lr_min_delta', self.lr_min_delta)
         self.es_patience = kwargs.pop('es_patience', self.es_patience)
-        self.es_max_factor = kwargs.pop('es_max_factor', self.es_max_factor)
+        self.es_min_delta = kwargs.pop('es_min_delta', self.es_min_delta)
 
         # build direct emulator
-        direct_emulator = bm.build_direct_emulator(self.direct_em_dims, self.signal_train, self.par_train,
-                                                   self.activation_func)
+        emulator = bm.build_direct_emulator(self.hidden_dims, self.signal_train, self.par_train, self.activation_func)
 
         # update the default models
-        self.direct_emulator = direct_emulator
+        self.emulator = emulator
 
-        losses = train_direct_emulator(direct_emulator, self.em_lr, self.signal_train, self.signal_val, self.par_train,
-                                       self.par_val, self.epochs, self.em_lr_factor, self.em_min_lr,
-                                       self.em_lr_patience, self.lr_max_factor, self.es_patience, self.es_max_factor)
+        losses = train_emulator(emulator, self.signal_train, self.signal_val, self.par_train, self.par_val, self.epochs,
+                                self.learning_rate, self.lr_factor, self.lr_patience, self.lr_min_delta, self.min_lr,
+                                self.es_min_delta, self.es_patience)
 
-        self.direct_em_train_losses = losses[0]
-        self.direct_em_val_losses = losses[1]
+        self.train_losses = losses[0]
+        self.val_losses = losses[1]
 
     def predict(self, params):
         """
@@ -157,7 +155,7 @@ class VeryAccurateEmulator:
         of the parameters. The parameters must be in the order [fstar, Vc, fx, tau, alpha, nu_min, Rmfp]
         :return: Array with shape (N, 451) where each row is a global signal
         """
-        model = self.direct_emulator
+        model = self.emulator
         training_params = self.par_train
         training_signals = self.signal_train
         transformed_params = pp.par_transform(params, training_params)  # transform the input parameters
