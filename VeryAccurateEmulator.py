@@ -291,7 +291,7 @@ class AutoEncoderEmulator:
                 assert ae == kwargs['autoencoder'], 'The Autoencoder does not match the Encoder and Decoder!'
         
         # initialize training set, validation set, and test set variables
-        with h5py.File('dataset_21cmVAE.h5', 'r') as hf:
+        with h5py.File(SCRIPT_PATH + 'dataset_21cmVAE.h5', 'r') as hf:
             self.signal_train = hf['signal_train'][:]
             self.signal_val = hf['signal_val'][:]
             self.signal_test = hf['signal_test'][:]
