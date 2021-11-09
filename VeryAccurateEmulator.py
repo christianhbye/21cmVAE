@@ -473,7 +473,7 @@ class AutoEncoderEmulator:
         self.em_train_losses = losses[2]
         self.em_val_losses = losses[3]
 
-    def predict(self, params):
+    def predict(self, use_autoencoder=False, params=None, signals=None):
         """
         Predict global signals from input parameters. The training parameters and training signals matters
         for inverting the preprocessing of signals so these parameters must correspond to the training set the emulator
@@ -481,17 +481,33 @@ class AutoEncoderEmulator:
         the default model is used. Otherwise, the properties must be updated manually with 21cmVAE.par_train = ...
         and 21cmVAE.signal_train = ...
         :param params: Array of shape (N, 7) where N = number of signals to predict and the columns are the values
-        of the parameters. The parameters must be in the order [fstar, Vc, fx, tau, alpha, nu_min, Rmfp]
+        of the parameters. The parameters must be in the order [fstar, Vc, fx, tau, alpha, nu_min, Rmfp]. This kwarg is necessary to
+        predict global signals with the emulator.
+        :param use_autoencoder: bool, whether to predict signals with emulator or autoencoder. Defaults to False.
+        :param signals: Array of shape (N, 451) where each row is a global signal that the autoencoder will attempt to reconstruct.
+        Necessary if use_autoencoder=True.
         :return: Array with shape (N, 451) where each row is a global signal
         """
-        model = self.emulator
-        decoder = self.decoder
+        if use_autoencoder and signals is None:
+            raise KeyError("Cannot compute autoencoder predicted signals without input global signals.")
+        elif not use_autoencoder and params is None:
+            raise KeyError("Cannot predict global signals with emulator without input parameters.")
+        
         training_params = self.par_train
         training_signals = self.signal_train
-        transformed_params = pp.par_transform(params, training_params)  # transform the input parameters
-        preprocessed_signal = model.predict(transformed_params)  # predict signal with emulator
-        decoded = decoder.predict(preprocessed_signal)  # decode predicted signal
-        predicted_signal = pp.unpreproc(decoded, training_signals)  # unpreprocess the signal
+        
+        if not use_autoencoder:  # using emulator
+            model = self.emulator
+            decoder = self.decoder
+            transformed_params = pp.par_transform(params, training_params)  # transform the input parameters
+            preprocessed_signal = model.predict(transformed_params)  # predict signal with emulator
+            output = decoder.predict(preprocessed_signal)  # decode predicted signal
+        else:  # using autoencoder
+            model = self.autoencoder
+            pp_signal = pp.preproc(signals, training_signals)  # input signals
+            output = model.predict(pp_signal)  # attempted reconstruction
+            
+        predicted_signal = pp.unpreproc(output, training_signals)  # unpreprocess the signal
         if predicted_signal.shape[0] == 1:
             return predicted_signal[0, :]
         else:
@@ -502,6 +518,7 @@ class AutoEncoderEmulator:
         Computes the rms error as given in the paper, either a relative error or an absolute error in mK. If absolute
         error, then different frequency bands can be chosen.
         Possible kwargs
+        :param use_autoencoder: bool, whether to compute errors of autoencoder or emulator. Defaults to False.
         :param test_params: array, with shape (N, 7) of parameters to test on where N is the number of different
         parameters to try at once (for  a vectorised call)
         :param test_signals: array with shape (N, 451) [451 is flexible, depends on what signals the model is trained on]
@@ -515,9 +532,10 @@ class AutoEncoderEmulator:
         """
         for key, values in kwargs.items():
             if key not in set(
-                    ['test_params', 'test_signals', 'relative', 'flow', 'fhigh']):
+                    ['use_autoencoder', 'test_params', 'test_signals', 'relative', 'flow', 'fhigh']):
                 raise KeyError("Unexpected keyword argument in compute_rms_error()")
 
+        use_autoencoder = kwargs.pop('use_autoencoder', False)
         test_params = kwargs.pop('test_params', self.par_test)
         test_signals = kwargs.pop('test_signals', self.signal_test)
         relative = kwargs.pop('relative', True)
@@ -529,7 +547,7 @@ class AutoEncoderEmulator:
                 print("One or two frequency bounds are specified, but 'relative' is set to True so the relative"
                       " error will be computed and the frequency bounds ignored. Did you mean to set relative=False?")
 
-        predicted_signal_input = self.predict(test_params)
+        predicted_signal_input = self.predict(use_autoencoder=use_autoencoder, params=test_params, signals=test_signals)
         true_signal_input = test_signals
         assert predicted_signal_input.shape == true_signal_input.shape
         if len(predicted_signal_input.shape) == 1:
