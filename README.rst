@@ -1,7 +1,13 @@
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.5085445.svg)](https://doi.org/10.5281/zenodo.5085445)
-[![Documentation Status](https://readthedocs.org/projects/21cmvae/badge/?version=latest)](https://21cmvae.readthedocs.io/en/latest/?badge=latest)
+.. image:: https://zenodo.org/badge/360315069.svg
+   :target: https://zenodo.org/badge/latestdoi/360315069
+   
+.. image:: https://readthedocs.org/projects/21cmvae/badge/?version=latest
+:target: https://21cmvae.readthedocs.io/en/latest/?badge=latest
+:alt: Documentation Status
 
-# Very Accurate Emulator
+**********************
+Very Accurate Emulator
+**********************
 
 Very Accurate Emulator (21cmVAE) is an emulator of the 21-cm global signal. Given an input of seven astrophyscial parameters, it directly computes realizations of the global signal across redshifts 5-50. The emulator is described in detail in [Bye et. al, 2021](https://arxiv.org/abs/2107.05581). 
 
@@ -11,7 +17,9 @@ Very Accurate Emulator (21cmVAE) is an emulator of the 21-cm global signal. Give
 
 Questions and comments are welcome; please e-mail me at chbye@berkeley.edu. If you use this work for academic purposes, please cite [Bye et. al, 2021](https://arxiv.org/abs/2107.05581) and link to this repository.
 
-## Set-up
+Set-up
+######
+
 Dependencies: Python 3, Tensorflow 2, h5py, numpy.
 Recommended: Matplotlib (required for the sample notebooks).
 
