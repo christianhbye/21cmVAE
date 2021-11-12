@@ -2,8 +2,8 @@
    :target: https://zenodo.org/badge/latestdoi/360315069
    
 .. image:: https://readthedocs.org/projects/21cmvae/badge/?version=latest
-:target: https://21cmvae.readthedocs.io/en/latest/?badge=latest
-:alt: Documentation Status
+   :target: https://21cmvae.readthedocs.io/en/latest/?badge=latest
+   :alt: Documentation Status
 
 **********************
 Very Accurate Emulator
