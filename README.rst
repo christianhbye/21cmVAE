@@ -1,4 +1,5 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.5085445.svg)](https://doi.org/10.5281/zenodo.5085445)
+[![Documentation Status](https://readthedocs.org/projects/21cmvae/badge/?version=latest)](https://21cmvae.readthedocs.io/en/latest/?badge=latest)
 
 # Very Accurate Emulator
 
