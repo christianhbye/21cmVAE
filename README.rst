@@ -25,6 +25,7 @@ Recommended: Matplotlib (required for the sample notebooks).
 
 The simplest way to install 21cmVAE with all dependencies is with pip:
 .. code:: bash
+
    python -m pip install 21cmVAE
 
 Alternatively, you may clone the Git repository:
