@@ -24,6 +24,7 @@ Dependencies: Python 3, Tensorflow 2, h5py, numpy.
 Recommended: Matplotlib (required for the sample notebooks).
 
 The simplest way to install 21cmVAE with all dependencies is with pip:
+
 .. code:: bash
 
    python -m pip install 21cmVAE
