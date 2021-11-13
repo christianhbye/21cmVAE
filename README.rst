@@ -25,6 +25,7 @@ The simplest way to install 21cmVAE with all dependencies is with pip. We recomm
 To set up a virtual environment on Unix or MacOS:
 
 .. code:: bash
+
    python -m venv .emulator_env
    source .emulator/bin/activate
 
@@ -32,6 +33,7 @@ To set up a virtual environment on Unix or MacOS:
 The Windows equivalent is:
 
 .. code:: bash
+
    python -m venv .emulator_env
    .emulator\Scripts\activate.bat
 
@@ -39,6 +41,7 @@ The Windows equivalent is:
 Then install with pip:
 
 .. code:: bash
+
    python -m pip install 21cmVAE
 
 
