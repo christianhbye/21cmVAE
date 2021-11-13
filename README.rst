@@ -50,6 +50,7 @@ Alternatively, you may clone the Git repository:
 .. code:: bash
 
    git clone https://github.com/christianhbye/21cmVAE.git
+   cd 21cmVAE
    python setup.py install
 
 Finally, download the dataset used from http://doi.org/10.5281/zenodo.5084114, and move the file to the 21cmVAE folder. This is necessary for all uses of the emulator, as the dataset is used in the prediction alogrithm.
