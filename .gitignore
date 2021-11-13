@@ -1,5 +1,5 @@
 .ipynb_checkpoints/
 __pycache__/
 checkpoints/
-21cmVAE/dataset_21cmVAE.h5
+VeryAccurateEmulator/dataset_21cmVAE.h5
 RESULTS
