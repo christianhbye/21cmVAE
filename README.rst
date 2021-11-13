@@ -66,3 +66,15 @@ If you wish to run the package in a Jupyter Notebook, we suggest adding the virt
     python -m ipykernel install --user --name .emulator_env
 
 Finally, download the dataset used from http://doi.org/10.5281/zenodo.5084114, and move the file to the VeryAccurateEmulator folder. This is necessary for all uses of the emulator, as the dataset is used in the prediction alogrithm.
+
+Contributions
+#############
+Main author: Christian H. Bye
+
+Suggestions and additional contributions from:
+
+- Stephen KN Portillo
+
+- Anastasia Fialkov
+
+If you have suggestions for improvements/additional features, notice a bug, or want to contribute in another way, please open an issue, make a pull request or just e-mail me (chb@berkeley.edu).
