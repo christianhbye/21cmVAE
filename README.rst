@@ -27,7 +27,7 @@ To set up a virtual environment on Unix or MacOS:
 .. code:: bash
 
    python -m venv .emulator_env
-   source .emulator/bin/activate
+   source .emulator_env/bin/activate
 
 
 The Windows equivalent is:
