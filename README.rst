@@ -24,14 +24,14 @@ Dependencies: Python 3, Tensorflow 2, h5py, numpy.
 Recommended: Matplotlib (required for the sample notebooks).
 
 To install, make sure you have the dependencies. Use for example a virtual environment:
-```
+``
 conda create -n emulator_env ipykernel tensorflow numpy h5py matplotlib
 conda activate emulator_env
 python -m ipykernel install --user --name emulator_env --display-name "21cmVAE"
-```
+``
 Then, clone the repository:
-```
+``
 git clone https://github.com/christianhbye/21cmVAE.git
-```
+``
 
 Finally, download the dataset used from http://doi.org/10.5281/zenodo.5084114, and move the file to the 21cmVAE folder. This is necessary for all uses of the emulator, as the dataset is used in the prediction alogrithm.
