@@ -3,11 +3,12 @@ import numpy as np
 import os
 import tensorflow as tf
 
-import build_models as bm
-import preprocess as pp
-from training_tools import train_emulator, train_ae_emulator, em_loss_fcn
+import VeryAccurateEmulator.build_models as bm
+import VeryAccurateEmulator.preprocess as pp
+from VeryAccurateEmulator.training_tools import train_emulator, train_ae_emulator, em_loss_fcn
 
 SCRIPT_PATH = os.path.realpath(__file__)[:-len('VeryAccurateEmulator.py')]
+
 
 class VeryAccurateEmulator:
     def __init__(self, **kwargs):
