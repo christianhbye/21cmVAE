@@ -35,7 +35,7 @@ The Windows equivalent is:
 .. code:: bash
 
    python -m venv .emulator_env
-   .emulator\Scripts\activate.bat
+   .emulator_env\Scripts\activate.bat
 
 
 Then install with pip:
