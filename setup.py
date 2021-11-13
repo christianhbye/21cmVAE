@@ -7,14 +7,14 @@ def readme():
 
 
 setup(
-    name='21cmVAE',
+    name='VeryAccurateEmulator',
     version='2.0.0',
     description='21cmVAE: A Very Accurate Emulator of the 21-cm Global Signal.',
     long_description=readme(),
     author='Christian H. Bye',
     author_email='chbye@berkeley.edu',
     url='https://github.com/christianhbye/21cmVAE',
-    packages=['21cmVAE'],
+    packages=['VeryAccurateEmulator'],
     install_requires=open('requirements.txt').read().splitlines(),
     license='MIT',
     classifiers=[
