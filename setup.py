@@ -1,5 +1,7 @@
 from setuptools import setup
+import sys
 
+sys.path.append('VeryAccurateEmulator')
 
 def readme():
     with open('README.rst') as f:
