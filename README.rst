@@ -17,8 +17,8 @@ Questions and comments are welcome; please e-mail me at chbye@berkeley.edu. If y
 Set-up
 ######
 
-Dependencies: Python 3, Tensorflow 2, h5py, numpy.
-Recommended: matplotlib, jupyter (required for the sample notebooks).
+Dependencies: Python 3, Tensorflow>=2.5, h5py, numpy.
+Recommended: matplotlib, jupyter, ipykernel (required for the sample notebooks).
 
 The simplest way to install 21cmVAE with all dependencies is with pip. We recommend doing this in a `virtual environment <https://docs.python.org/3/tutorial/venv.html>`_.
 
@@ -44,7 +44,7 @@ Then install with pip:
 
    python -m pip install 21cmVAE
 
-To install the recommended packages (matplotlib and jupyter) as well, you should instead do:
+To install the recommended packages (matplotlib, jupyter, and ipykernel) as well, you should instead do:
 
 .. code:: bash
 
@@ -57,5 +57,11 @@ Alternatively, you may clone the Git repository:
    git clone https://github.com/christianhbye/21cmVAE.git
    cd 21cmVAE
    python setup.py install
+   
+If you wish to run the package in a Jupyter Notebook, we suggest adding the virtual environment to the ipykernel:
+
+.. code:: bash
+    
+    python -m ipykernel install --user --name .emulator_env
 
 Finally, download the dataset used from http://doi.org/10.5281/zenodo.5084114, and move the file to the 21cmVAE folder. This is necessary for all uses of the emulator, as the dataset is used in the prediction alogrithm.
