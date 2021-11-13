@@ -10,6 +10,7 @@ Welcome to 21cmVAE's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   Introduction <introduction>
 
 
 Indices and tables
