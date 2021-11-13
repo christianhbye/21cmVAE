@@ -17,9 +17,6 @@ setup(
     packages=['21cmVAE'],
     install_requires=open('requirements.txt').read().splitlines(),
     license='MIT',
-    extras_require={
-          'docs': ['sphinx', 'sphinx_rtd_theme', 'numpydoc'],
-          },
     classifiers=[
                'Intended Audience :: Science/Research',
                'License :: OSI Approved :: MIT License',
