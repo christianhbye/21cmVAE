@@ -138,6 +138,26 @@ class VeryAccurateEmulator:
         self.es_patience = kwargs.pop('es_patience', self.es_patience)
         self.es_min_delta = kwargs.pop('es_min_delta', self.es_min_delta)
 
+        # check that properties are set consistently
+        assert np.shape(self.signal_train)[-1] == np.shape(self.signal_val)[-1], \
+            "Global signals in training and validation set must be sampled at equally many redshifts"
+        assert np.shape(self.par_train)[-1] == np.shape(self.par_val)[-1], \
+            "Training and validation set must have equally many astrophysical parameters"
+        if len(np.shape(self.signal_train) > 1):
+            assert np.shape(self.signal_train)[0] == np.shape(self.par_train)[0], \
+                "The number of global signals doesn't match the number of parameter combinations in the training set"
+        if len(np.shape(self.signal_val) > 1):
+            assert np.shape(self.signal_val)[0] == np.shape(self.par_val)[0], \
+                "The number of global signals doesn't match the number of parameter combinations in the validation set"
+        assert type(self.learning_rate) == float or int, "Learning rate must be float or int"
+        assert type(self.epochs) == int, "Epochs must be int"
+        assert type(self.lr_factor) == float or int, "LR factor must be float or int"
+        assert type(self.lr_patience) == int, "LR patience must be int"
+        assert type(self.min_lr) == float or int, "Min LR must be float or int"
+        assert type(self.lr_min_delta) == float or int, "LR min delta must be float or int"
+        assert type(self.es_patience) == int, "ES patience must be int"
+        assert type(self.es_min_delta) == float or int, "ES min delta must be float or int"
+
         # build direct emulator
         emulator = bm.build_direct_emulator(self.hidden_dims, self.signal_train, self.par_train, self.activation_func)
 
@@ -148,7 +168,7 @@ class VeryAccurateEmulator:
         losses = train_emulator(emulator, self.signal_train, self.signal_val, self.par_train, self.par_val, self.epochs,
                                 self.learning_rate, self.lr_factor, self.lr_patience, self.lr_min_delta, self.min_lr,
                                 self.es_min_delta, self.es_patience)
-
+        assert len(losses) == 2, "train_emulator() should return training and validation losses"
         self.train_losses = losses[0]
         self.val_losses = losses[1]
         if len(losses[0]) < self.epochs:
@@ -202,6 +222,10 @@ class VeryAccurateEmulator:
         relative = kwargs.pop('relative', True)
         flow = kwargs.pop('flow', None)
         fhigh = kwargs.pop('fhigh', None)
+
+        if len(np.shape(test_params)) > 1:
+            assert np.shape(test_params)[0] == np.shape(test_signals)[0],\
+                "Number of test params and signals aren't equal"
 
         if flow is not None or fhigh is not None:
             if relative:
@@ -271,14 +295,14 @@ class AutoEncoderEmulator:
                 raise KeyError("Unexpected keyword argument in class AutoEncoderEmulator")
                 
         # checking for input combinations (see docstring):
-        if not 'encoder' in kwargs:
+        if 'encoder' not in kwargs:
             if 'autoencoder' in kwargs:
                 print('Kwarg autoencoder without encoder has no effect. Resetting to default autoencoder.')
                 kwargs.pop('autoencoder')
             if 'decoder' in kwargs:
                 print('Kwarg decoder without encoder has no effect. Resetting to default decoder.')
                 kwargs.pop('decoder')
-        elif not 'decoder' in kwargs:
+        elif 'decoder' not in kwargs:
             print('Kwarg encoder without decoder has no effect. Resetting to default encoder.')
             kwargs.pop('encoder')
             if 'autoencoder' in kwargs:
@@ -306,11 +330,8 @@ class AutoEncoderEmulator:
         
         # the default models are the pretrained ones
         model_path = SCRIPT_PATH + 'models/autoencoder_based_emulator/'
-        self.autoencoder = kwargs.pop('autoencoder',
-                                      tf.keras.models.load_model(
-                                          model_path+'autoencoder.h5', custom_objects={'loss_function': em_loss_fcn(self.signal_train)}
-                                      )
-                                     )
+        self.autoencoder = kwargs.pop('autoencoder', tf.keras.models.load_model(
+            model_path+'autoencoder.h5', custom_objects={'loss_function': em_loss_fcn(self.signal_train)}))
         self.encoder = kwargs.pop('encoder', tf.keras.models.load_model(model_path+'encoder.h5'))
         self.decoder = kwargs.pop('decoder', tf.keras.models.load_model(model_path+'decoder.h5'))
         self.emulator = kwargs.pop('emulator', tf.keras.models.load_model(model_path+'ae_emulator.h5'))
