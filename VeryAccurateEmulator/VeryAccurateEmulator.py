@@ -3,9 +3,10 @@ import numpy as np
 import os
 import tensorflow as tf
 
-import VeryAccurateEmulator.build_models as bm
-import VeryAccurateEmulator.preprocess as pp
 from VeryAccurateEmulator.training_tools import train_emulator, train_ae_emulator, em_loss_fcn
+from VeryAccurateEmulator import build_models as bm
+from VeryAccurateEmulator import preprocess as pp
+
 
 SCRIPT_PATH = os.path.realpath(__file__)[:-len('VeryAccurateEmulator.py')]
 
@@ -35,8 +36,9 @@ class VeryAccurateEmulator:
         self.epochs = 350  # max number of epochs (can be less due to early stopping)
         self.learning_rate = 0.01  # initial learning rate for emulator
 
-        # Parameters that control the learning rate schedule during training (see https://keras.io/api/callbacks/reduce_lr_on_plateau/):
-        # if the loss doesn't by more than [lr_min_delta] for [lr_patience] number of epochs, LR is multiplied by [lr_factor]
+        # Parameters that control the learning rate schedule during training
+        # (see https://keras.io/api/callbacks/reduce_lr_on_plateau/): if the loss doesn't decrease by more than
+        # [lr_min_delta] for [lr_patience] number of epochs, LR is multiplied by [lr_factor]
         self.lr_min_delta = 5e-9
         self.lr_factor = 0.95
         self.lr_patience = 5  
@@ -50,8 +52,8 @@ class VeryAccurateEmulator:
                 raise KeyError("Unexpected keyword argument passed to class VeryAccurateEmulator")
         
         # the default emulator is 21cmVAE:
-        self.emulator = kwargs.pop('emulator', tf.keras.models.load_model(SCRIPT_PATH + 'models/emulator.h5',
-                                                                          custom_objects={'loss_function': em_loss_fcn(self.signal_train)}))
+        self.emulator = kwargs.pop('emulator', tf.keras.models.load_model(
+            SCRIPT_PATH+'models/emulator.h5', custom_objects={'loss_function': em_loss_fcn(self.signal_train)}))
         
         # initialize lists with losses, these get updated when models are trained
         self.train_losses = []  # training set losses

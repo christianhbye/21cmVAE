@@ -8,9 +8,9 @@ from tensorflow.keras.models import Model
 from tensorflow.keras import backend as K
 from tensorflow.keras.losses import mse
 
-import preprocess as pp
-from build_models import build_direct_emulator
-from training_tools import train_emulator
+import VeryAccurateEmulator.preprocess as pp
+from VeryAccurateEmulator.build_models import build_direct_emulator
+from VeryAccurateEmulator.training_tools import train_emulator
 
 
 MAX_TRIALS = 500  # number of models to build
