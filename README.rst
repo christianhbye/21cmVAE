@@ -19,7 +19,7 @@ Set-up
 
 Dependencies: Python>=3.6, Tensorflow>=2.5, h5py, numpy.
 
-Recommended: matplotlib, jupyter, ipykernel (required for the sample notebooks).
+Optional: matplotlib, jupyter, ipykernel (all required for the sample notebooks), pytest (for testing).
 
 The simplest way to install 21cmVAE with all dependencies is with pip. We recommend doing this in a `virtual environment <https://docs.python.org/3/tutorial/venv.html>`_.
 
@@ -45,11 +45,13 @@ Then install with pip:
 
    python -m pip install 21cmVAE
 
-To install the recommended packages (matplotlib, jupyter, and ipykernel) as well, you should instead do:
+To install the optional interactive packages (matplotlib, jupyter, and ipykernel) as well, you should instead do:
 
 .. code:: bash
 
    python -m pip install 21cmVAE[interactive]
+
+To automatically install pytest, replace [interactive] with [tests]. All optional packages (interactive + tests) may be installed with [all].
 
 Alternatively, you may clone the Git repository:
 
