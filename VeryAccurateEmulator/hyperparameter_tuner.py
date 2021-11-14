@@ -33,26 +33,37 @@ signal_val_preproc = pp.preproc(signal_val, signal_train)
 signal_test_preproc = pp.preproc(signal_test, signal_train)
 
 # (fixed) hyperparameters that define the search range
-min_hidden_layers = 1 # min. no. of hidden layers
-max_step_h_layers = 4 # max. no. of hidden layers
+min_hidden_layers = 1  # min. no. of hidden layers
+max_step_h_layers = 4  # max. no. of hidden layers
 h_layer_step = 1
-min_hidden_dim = 32 # min. dimensionality of hidden layer
-max_step_hidden_dim = 6 # max. dimensionality of hidden layer
-hidden_dim_step = 64 # step size
+min_hidden_dim = 32  # min. dimensionality of hidden layer
+max_step_hidden_dim = 6  # max. dimensionality of hidden layer
+hidden_dim_step = 64  # step size
+
+assert all(isinstance(var, int) for var in [min_hidden_layers, max_step_h_layers, h_layer_step, min_hidden_dim,
+                                            max_step_hidden_dim, hidden_dim_step])
 
 # fixed hyperparameters
 activation_func = 'relu'
 em_lr = 0.01
+assert type(em_lr) == float or int
 
 # Reduce LR callback (https://keras.io/api/callbacks/reduce_lr_on_plateau/)
 em_lr_factor = 0.95
 em_lr_patience = 5
 em_min_lr = 1e-4
 em_lr_min_delta = 5e-9
+assert type(em_lr_factor) == float or int
+assert type(em_lr_patience) == int
+assert type(em_min_lr) == float or int
+assert type(em_lr_min_delta) == flaot or int
+assert em_min_lr <= em_lr, "Min LR must be <= initial LR"
 
 # for early stopping (https://keras.io/api/callbacks/early_stopping/)
 es_patience = 15
 es_min_delta = 1e-10
+assert type(es_patience) == int
+assert type(es_min_delta) == float or int
 
 
 def generate_hp(min_val, step_size, max_step):
