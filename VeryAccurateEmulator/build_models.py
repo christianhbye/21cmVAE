@@ -17,6 +17,10 @@ def build_direct_emulator(layer_hps, signal_train, par_train, activation_func='r
     (see https://keras.io/api/layers/activations/)
     :return: the emulator as a keras model object
     """
+    assert type(layer_hps) == list, "Layer hps must be a list"
+    assert all(isinstance(h, int) for h in layer_hps), "Dimensions must be int"
+    if len(np.shape(signal_train)) > 1:
+        assert np.shape(signal_train)[0] == np.shape(par_train)[0], "Training set needs equally many signals and params"
     em_input_par = Input(shape=(par_train.shape[1],), name='em_input')
     em_hidden_dims = layer_hps
     for i, dim in enumerate(em_hidden_dims):  # add hidden layers with the specified dimensions one by one
@@ -39,6 +43,14 @@ def build_autoencoder(layer_hps, signal_train, activation_func='relu'):
     (see https://keras.io/api/layers/activations/)
     :return: the autoencoder as a keras model object
     """
+    assert type(layer_hps) == list, "Layer hps must be a list"
+    assert len(layer_hps) == 4, "Layer hps should have one element for each of encoder, decoder, emulator, latent dim"
+    assert all(isinstance(h, int) for h in layer_hps[0]), "Encoder dimensions must be int"
+    assert all(isinstance(h, int) for h in layer_hps[2]), "Decoder dimensions must be int"
+    assert all(isinstance(h, int) for h in layer_hps[3]), "Emulator dimensions must be int"
+    assert type(layer_hps[1]) == int, "Latent dimension must be int"
+    if len(np.shape(signal_train)) > 1:
+        assert np.shape(signal_train)[0] == np.shape(par_train)[0], "Training set needs equally many signals and params"
     encoding_hidden_dims = layer_hps[0]  # the layers of the encoder
     ae_input = Input(shape=(signal_train.shape[1],))  # input layer for autoencoder
     # loop over the number of layers and build the encoder with layers of the given dimensions
@@ -96,6 +108,12 @@ def build_ae_emulator(layer_hps, par_train, activation_func='relu'):
     (see https://keras.io/api/layers/activations/)
     :return: the emulator as a keras model object
     """
+    assert type(layer_hps) == list, "Layer hps must be a list"
+    assert len(layer_hps) == 4, "Layer hps should have one element for each of encoder, decoder, emulator, latent dim"
+    assert all(isinstance(h, int) for h in layer_hps[0]), "Encoder dimensions must be int"
+    assert all(isinstance(h, int) for h in layer_hps[2]), "Decoder dimensions must be int"
+    assert all(isinstance(h, int) for h in layer_hps[3]), "Emulator dimensions must be int"
+    assert type(layer_hps[1]) == int, "Latent dimension must be int"
     em_input_par = Input(shape=(par_train.shape[1],), name='em_input')
     em_hidden_dims = layer_hps[3]
     for i, dim in enumerate(em_hidden_dims):  # add hidden layers one by one
