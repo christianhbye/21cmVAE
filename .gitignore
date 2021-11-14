@@ -3,3 +3,5 @@ __pycache__/
 checkpoints/
 VeryAccurateEmulator/dataset_21cmVAE.h5
 RESULTS
+VeryAccurateEmulator.egg-info/
+build/
