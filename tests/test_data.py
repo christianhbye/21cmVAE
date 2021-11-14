@@ -1,3 +1,4 @@
+import h5py
 import os
 
 HERE = os.path.realpath(__file__)[:-len('test_data.py')]
