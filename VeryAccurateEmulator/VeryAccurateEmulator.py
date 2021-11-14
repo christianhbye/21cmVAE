@@ -85,6 +85,8 @@ class VeryAccurateEmulator:
                 raise KeyError("Unexpected keyword argument in set_hyperparameters()")
 
         self.hidden_dims = kwargs.pop('hidden_dims', self.hidden_dims)
+        assert type(self.hidden_dims) == list, "Layer dimensions must be list"
+        assert all(isinstance(h, int) for h in self.hidden_dims), "Dimensions must be int"
         self.activation_func = kwargs.pop('activation_function', self.activation_func)
 
     def get_hyperparameters(self):
@@ -154,6 +156,7 @@ class VeryAccurateEmulator:
         assert type(self.lr_factor) == float or int, "LR factor must be float or int"
         assert type(self.lr_patience) == int, "LR patience must be int"
         assert type(self.min_lr) == float or int, "Min LR must be float or int"
+        assert self.min_lr <= self.learning_rate, "Min LR must be <= initial LR"
         assert type(self.lr_min_delta) == float or int, "LR min delta must be float or int"
         assert type(self.es_patience) == int, "ES patience must be int"
         assert type(self.es_min_delta) == float or int, "ES min delta must be float or int"
@@ -400,9 +403,16 @@ class AutoEncoderEmulator:
                 raise KeyError("Unexpected keyword argument in set_hyperparameters()")
 
         self.latent_dim = kwargs.pop('latent_dim', self.latent_dim)
+        assert type(self.latent_dim) == int, "Latent dimension must be int"
         self.encoder_dims = kwargs.pop('encoder_dims', self.encoder_dims)
         self.decoder_dims = kwargs.pop('decoder_dims', self.decoder_dims)
         self.em_dims = kwargs.pop('em_dims', self.em_dims)
+        assert type(self.encoder_dims) == list, "Encoder layer dimensions must be list"
+        assert all(isinstance(h, int) for h in self.encoder_dims), "Encoder dimensions must be int"
+        assert type(self.decoder_dims) == list, "Decoder layer dimensions must be list"
+        assert all(isinstance(h, int) for h in self.decoder_dims), "Decoder dimensions must be int"
+        assert type(self.em_dims) == list, "Emulator layer dimensions must be list"
+        assert all(isinstance(h, int) for h in self.emulator_dims), "Emulator dimensions must be int"
         self.activation_func = kwargs.pop('activation_function', self.activation_func)
 
     def get_hyperparameters(self):
@@ -473,6 +483,34 @@ class AutoEncoderEmulator:
         self.em_earlystop_delta = kwargs.pop('em_earlystop_delta', self.em_earlystop_delta)
         self.es_patience = kwargs.pop('es_patience', self.es_patience)
 
+        # check that properties are set consistently
+        assert np.shape(self.signal_train)[-1] == np.shape(self.signal_val)[-1], \
+            "Global signals in training and validation set must be sampled at equally many redshifts"
+        assert np.shape(self.par_train)[-1] == np.shape(self.par_val)[-1], \
+            "Training and validation set must have equally many astrophysical parameters"
+        if len(np.shape(self.signal_train) > 1):
+            assert np.shape(self.signal_train)[0] == np.shape(self.par_train)[0], \
+                "The number of global signals doesn't match the number of parameter combinations in the training set"
+        if len(np.shape(self.signal_val) > 1):
+            assert np.shape(self.signal_val)[0] == np.shape(self.par_val)[0], \
+                "The number of global signals doesn't match the number of parameter combinations in the validation set"
+        assert type(self.ae_lr) == float or int, "Autoencoder learning rate must be float or int"
+        assert type(self.em_lr) == float or int, "Emulator learning rate must be float or int"
+        assert type(self.epochs) == int, "Epochs must be int"
+        assert type(self.ae_lr_min_delta) == float or int, "Autoencoder LR min delta must be float or int"
+        assert type(self.em_lr_min_delta) == float or int, "Emulator LR min delta must be float or int"
+        assert type(self.ae_earlystop_delta) == float or int, "Autoencoder ES min delta must be float or int"
+        assert type(self.em_earlystop_delta) == float or int, "Emulator ES min delta must be float or int"
+        assert type(self.ae_lr_factor) == float or int, "Autoencoder LR factor must be float or int"
+        assert type(self.em_lr_factor) == float or int, "Emulator LR factor must be float or int"
+        assert type(self.ae_min_lr) == float or int, "Autoenocder min LR must be float or int"
+        assert self.ae_min_lr <= self.ae_lr, "Autoencoder min LR must be <= initial LR"
+        assert type(self.em_min_lr) == float or int, "Emulator min LR must be float or int"
+        assert self.em_min_lr <= self.em_lr, "Emulator min LR must be <= initial LR"
+        assert type(self.ae_lr_patience) == int, "Autoencoder LR patience must be int"
+        assert type(self.em_lr_patience) == int, "Emulator LR patience must be int"
+        assert type(self.es_patience) == int, "ES patience must be int"
+
         # hyperparameters
         layer_hps = [self.encoder_dims, self.latent_dim, self.decoder_dims, self.em_dims]
 
@@ -488,10 +526,10 @@ class AutoEncoderEmulator:
 
         losses = train_ae_emulator(self.autoencoder, self.encoder, self.emulator, self.signal_train, self.signal_val,
                                    self.par_train, self.par_val, self.epochs, self.ae_lr, self.em_lr, self.ae_lr_factor,
-                                   self.ae_lr_patience, self.ae_lr_min_delta, self.ae_min_lr, self.ae_earlystop_delta, self.es_patience,
-                                   self.em_lr_factor, self.em_lr_patience, self.em_lr_min_delta, self.em_min_lr,
-                                   self.em_earlystop_delta, self.es_patience)
-
+                                   self.ae_lr_patience, self.ae_lr_min_delta, self.ae_min_lr, self.ae_earlystop_delta,
+                                   self.es_patience, self.em_lr_factor, self.em_lr_patience, self.em_lr_min_delta,
+                                   self.em_min_lr, self.em_earlystop_delta, self.es_patience)
+        assert len(losses) == 4, "Training should return a list with 4 elements but it doesn't; something's wrong"
         self.ae_train_losses = losses[0]
         self.ae_val_losses = losses[1]
         self.em_train_losses = losses[2]
@@ -562,6 +600,9 @@ class AutoEncoderEmulator:
         use_autoencoder = kwargs.pop('use_autoencoder', False)
         test_params = kwargs.pop('test_params', self.par_test)
         test_signals = kwargs.pop('test_signals', self.signal_test)
+        if len(np.shape(test_params)) > 1:
+            assert np.shape(test_params)[0] == np.shape(test_signals)[0],\
+                "Number of test params and signals aren't equal"
         relative = kwargs.pop('relative', True)
         flow = kwargs.pop('flow', None)
         fhigh = kwargs.pop('fhigh', None)
