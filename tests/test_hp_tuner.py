@@ -63,7 +63,7 @@ def test_run_tuner():
     best_indices = fivebest[:, 0]
     for index in best_indices:
         fname = 'results_trial_' + str(index) + '_{:.0f}'.format(time)
-        assert fname+'.txt' in os.listdir()
+        assert fname+'.txt' in os.listdir()  # HER: ('results_trial_0.0_1636962618' + '.txt'
         assert fname+'_layer_hps.npy' in os.listdir()
     tr_loss = results['training_loss']
     val_loss = results['validation_loss']
