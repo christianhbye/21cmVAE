@@ -1,5 +1,8 @@
 import numpy as np
+import os
+from tensorflow.keras.Models import load_model
 from VeryAccurateEmulator import hyperparameter_tuner as hpt
+from VeryAccurateEmulator.training_tools import em_loss_fcn
 
 
 def test_gen_hp():
@@ -21,7 +24,7 @@ def test_gen_layers():
     :return: None
     """
     x = np.random.randint(1, 1000, size=(3, 2))
-    no_hidden_layers, hidden_dims = x[0], x[1]
+    no_hidden_layers, hidden_dims = x.T
     hdims_arr = hpt.generate_layers_hps(no_hidden_layers, hidden_dims)
     assert len(hdims_arr.shape) == 1
     max_number_of_layers = no_hidden_layers[0] + no_hidden_layers[1] * no_hidden_layers[2]
@@ -39,4 +42,37 @@ def test_gen_0layers():
     assert hdims_arr.shape == (0,)
 
 def test_run_tuner():
-
+    nfiles = len(os.listdir())  # ensures all files created here gets deleted
+    max_trials = 10
+    epochs = 30
+    x = np.random.randint(1, 1000, size=(3, 2))
+    no_hidden_layers, hidden_dims = x.T
+    tuner = hpt.HyperParameterTuner(max_trials, epochs, *no_hidden_layers, *hidden_dims)
+    tuner.save_sr()
+    assert os.path.exists('search_range.txt'), "Search range should have been saved to file"
+    tuner.run_all()
+    results = np.load('tuner_results.npz')
+    time = results['time']
+    fivebest = results['five_best_trials']
+    assert fivebest.shape == (5, 2)
+    best_indices = fivebest[:, 0]
+    for index in best_indices:
+        fname = 'results_trial_' + str(index) + '_{:.0f}'.format(time)
+        assert fname+'.txt' in os.listdir()
+        assert fname+'_layer_hps.npy' in os.listdir()
+    tr_loss = results['training_loss']
+    val_loss = results['validation_loss']
+    assert len(tr_loss) == len(val_loss)
+    best_index = best_indices[np.argmin(fivebest[:, 1])]
+    best_layer_hps = np.load('results_trial_' + str(best_index) + '_{:.0f}_layer_hps.npy'.format(time))
+    signal_train = results['signal_train']
+    tuned_em = load_model('best_emulator_{:.0f}.h5'.format(time),
+                          custom_objects={'loss_function': em_loss_fcn(signal_train)})
+    assert len(tuned_em.layers) == len(best_layer_hps)
+    os.remove('search_range.txt')
+    for index in best_indices:
+        fname = 'results_trial_' + str(index) + '_{:.0f}'.format(time)
+        os.remove(fname+'.txt')
+        os.remove(fname+'_layer_hps.npy')
+    os.remove('tuner_results.npz')
+    os.remove('best_emulator_{:.0f}.h5'.format(time))

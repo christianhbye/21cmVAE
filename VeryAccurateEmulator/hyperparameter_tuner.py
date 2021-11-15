@@ -57,7 +57,7 @@ def save_results(trial, layer_hps, emulator, losses, time):
     :param time: float, unix time identifying the hp run
     :return: None
     """
-    fname = 'results_trial_' + str(trial)
+    fname = 'results_trial_' + str(trial) + '_{:.0f}'.format(time)
     with open(fname+'.txt', 'a') as f:
         f.write('\n ---------- \n HYPERPARAMETER RUN, time = {:.0f}'.format(time))
         f.write('\n\nEmulator Losses:')
@@ -66,7 +66,7 @@ def save_results(trial, layer_hps, emulator, losses, time):
         f.write('\n')
         emulator.summary(print_fn=lambda x: f.write(x + '\n'))
     # save hps
-    np.save(fname+'_{:.0f}_layer_hps.npy'.format(TIME), layer_hps)
+    np.save(fname+'_layer_hps.npy', layer_hps)
 
 
 def delete_results(trial, time):
@@ -76,13 +76,30 @@ def delete_results(trial, time):
     :param time: float, unix time identifying the hp run
     :return: None
     """
-    fname = 'results_trial_' + str(int(trial))
+    fname = 'results_trial_' + str(int(trial)) + '_{:.0f}'.format(time)
     os.remove(fname+'.txt')
-    os.remove(fname+'_{:.0f}_layer_hps.npy'.format(time))
+    os.remove(fname+'_layer_hps.npy')
+
+def get_best_epoch_losses(losses):
+    """
+    :param losses: tuple of the form (training_loss, validation_loss) for the emulator where each element is
+    a list of losses (floats) for each epoch of the training
+    :return: tuple of floats, the training and validation loss at the epoch where the validation loss is minimum
+    """
+    assert len(losses) == 2
+    assert len(losses[0]) == len(losses[1])
+    # we care about the epoch that gives the minimum validation loss for the emulator ...
+    validation_loss = losses[-1]
+    min_indx = np.argmin(validation_loss)  # ... this is that epoch
+    assert validation_loss[min_indx] == np.min(validation_loss)
+    min_losses = [loss[min_indx] for loss in losses]  # make a list of the values of the losses for that epoch
+    assert len(min_losses) == 2
+    assert min_losses[-1] == np.min(validation_loss)
+    return min_losses
 
 class HyperParameterTuner:
-    def __init__(self, max_trials=500, epochs=350, min_hidden_layers=1, max_step_h_layers=4, h_layer_step=1,
-                 min_hidden_dim = 32, max_step_hidden_dim = 6, hidden_dim_step=64):
+    def __init__(self, max_trials=500, epochs=350, min_hidden_layers=1, h_layer_step=1, max_step_h_layers=4,
+                 min_hidden_dim=32, hidden_dim_step=64, max_step_hidden_dim=6):
         self.max_trials = max_trials  # number of models to build
         self.epochs = epochs  # max epochs for training (we use early stopping as well)
 
@@ -165,7 +182,6 @@ class HyperParameterTuner:
             f.write('\nearly_stop_patience = {}'.format(self.es_patience))
             f.write('\nEarly stop min delta = {}'.format(self.es_min_delta))
 
-
     def run_tuner(self):
         """
         The main function. Calls the other functions to do the hyperparameter search and saves the intersting parameters
@@ -183,10 +199,7 @@ class HyperParameterTuner:
             losses = train_emulator(emulator, self.signal_train, self.signal_val, self.par_train, self.par_val,
                                     self.epochs, self.em_lr, self.em_lr_factor, self.em_lr_patience,
                                     self.em_lr_min_delta, self.em_min_lr, self.es_min_delta, self.es_patience)
-            # we care about the epoch that gives the minimum validation loss for the emulator ...
-            validation_loss = losses[-1]
-            min_indx = np.argmin(validation_loss)  # ... this is that epoch
-            min_losses = [loss[min_indx] for loss in losses]  # make a list of the values of the losses for that epoch
+            min_losses = get_best_epoch_losses(losses)
             em_loss_val_min = min_losses[-1]
             if i < 5:  # if this is among the first five trials, we save the results anyway
                 five_best_val[i, 0] = i
@@ -211,10 +224,10 @@ class HyperParameterTuner:
         # the very best trial:
         best_trial_idx = np.argmin(five_best_trials[:, 1])
         best_trial = int(five_best_trials[best_trial_idx, 0])
+        assert five_best_trials[best_trial_idx, 1] == np.min(five_best_trials[:, 1])
         # load the hyperparameters of that trial
         best_layer_hps = np.load('results_trial_'+str(best_trial)+'_{:.0f}_layer_hps.npy'.format(self.time),
                                  allow_pickle=True)
-
         # now, retrain the emulator and VAE with the best hyperparameters
         tuned_em = build_direct_emulator(best_layer_hps, self.signal_train, self.par_train)
         em_loss, em_loss_val = train_emulator(tuned_em, self.signal_train, self.signal_val, self.par_train,
@@ -222,4 +235,11 @@ class HyperParameterTuner:
                                               self.em_lr_patience, self.em_lr_min_delta, self.em_min_lr,
                                               self.es_min_delta, self.es_patience)
 
-        return em_loss, em_loss_val
+        return tuned_em, five_best_trials, em_loss, em_loss_val
+
+    def run_all(self):
+        self.save_sr()
+        tuned_emulator, five_best_trials, training_loss, validation_loss = self.get_results()
+        tuned_emulator.save('best_emulator_{:.0f}.h5'.format(self.time))
+        np.savez('tuner_results.npz', five_best_trials=five_best_trials, time=self.time, signal_train=self.signal_train,
+                 best_training_loss=training_loss, best_validation_loss=validation_loss)
