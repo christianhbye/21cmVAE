@@ -29,6 +29,10 @@ class HyperParameterTuner:
             self.par_test = hf['par_test'][:]
         self.par_labels = ['fstar', 'Vc', 'fx', 'tau', 'alpha', 'nu_min', 'Rmfp']
 
+        self.signal_train_preproc = pp.preproc(signal_train, signal_train)
+        self.signal_val_preproc = pp.preproc(signal_val, signal_train)
+        self.signal_test_preproc = pp.preproc(signal_test, signal_train)
+
         # (fixed) hyperparameters that define the search range
         self.min_hidden_layers = min_hidden_layers  # min. no. of hidden layers
         self.max_step_h_layers = max_step_h_layers  # max. no. of hidden layers
@@ -60,31 +64,23 @@ class HyperParameterTuner:
         assert type(self.em_lr_min_delta) == flaot or int
         assert self.em_min_lr <= self.em_lr, "Min LR must be <= initial LR"
 
-signal_train_preproc = pp.preproc(signal_train, signal_train)
-signal_val_preproc = pp.preproc(signal_val, signal_train)
-signal_test_preproc = pp.preproc(signal_test, signal_train)
+        # for early stopping (https://keras.io/api/callbacks/early_stopping/)
+        self.es_patience = 15
+        self.es_min_delta = 1e-10
+        assert type(self.es_patience) == int
+        assert type(self.es_min_delta) == float or int
 
-
-
-
-
-# for early stopping (https://keras.io/api/callbacks/early_stopping/)
-es_patience = 15
-es_min_delta = 1e-10
-assert type(es_patience) == int
-assert type(es_min_delta) == float or int
-
-
-def generate_hp(min_val: int, step_size: int, max_step: int) -> int:
-    """
-    Function that generates one hyperparameter given the search range
-    :param min_val: int, min value of the hp
-    :param step_size: int, resolution of grid
-    :param max_step: int, max multiple of step_size that can be added to min
-    :return: int, the hyperparameter
-    """
-    step = np.random.randint(0, max_step+1)
-    return min_val + step * step_size
+### HER!
+    def generate_hp(self, min_val: int, step_size: int, max_step: int) -> int:
+        """
+        Function that generates one hyperparameter given the search range
+        :param min_val: int, min value of the hp
+        :param step_size: int, resolution of grid
+        :param max_step: int, max multiple of step_size that can be added to min
+        :return: int, the hyperparameter
+        """
+        step = np.random.randint(0, max_step+1)
+        return min_val + step * step_size
 
 
 def generate_layer_hps(no_hidden_layers=(min_hidden_layers, h_layer_step, max_step_h_layers),
