@@ -20,13 +20,13 @@ def generate_hp(min_val, step_size, max_step):
     :param max_step: int, max multiple of step_size that can be added to min
     :return: int, the hyperparameter
     """
-    assert type(min_val) == int
-    assert type(step_size) == int
-    assert type(max_step) == int
+    assert isinstance(min_val, (int, np.integer))
+    assert isinstance(step_size, (int, np.integer))
+    assert isinstance(max_step, (int, np.integer))
     step = np.random.randint(0, max_step + 1)
-    assert type(step) == int
+    assert isinstance(step, (int, np.integer))
     hp = min_val + step * step_size
-    assert type(hp) == int
+    assert isinstance(hp, (int, np.integer))
     return hp
 
 
@@ -40,8 +40,8 @@ def generate_layer_hps(no_hidden_layers, hidden_dims):
     """
     assert len(no_hidden_layers) == 3
     assert len(hidden_dims) == 3
-    assert all(isinstance(h, int) for h in no_hidden_layers)
-    assert all(isinstance(h, int) for h in hidden_dims)
+    assert all(isinstance(h, (int, np.integer)) for h in no_hidden_layers)
+    assert all(isinstance(h, (int, np.integer)) for h in hidden_dims)
     assert min_hidden_dim > 0
     # generate hyperparams for layers
     number_of_layers = generate_hp(*no_hidden_layers)
@@ -141,34 +141,34 @@ class HyperParameterTuner:
         self.max_step_hidden_dim = max_step_hidden_dim  # max. dimensionality of hidden layer
         self.hidden_dim_step = hidden_dim_step  # step size
 
-        assert type(self.min_hidden_layers) == int
-        assert type(self.max_step_h_layers) == int
-        assert type(self.h_layer_step) == int
-        assert type(self.min_hidden_dim) == int
-        assert type(self.max_step_hidden_dim) == int
-        assert type(self.hidden_dim_step) == int
+        assert isinstance(self.min_hidden_layers, (int, np.integer))
+        assert isinstance(self.max_step_h_layers, (int, np.integer))
+        assert isinstance(self.h_layer_step, (int, np.integer))
+        assert isinstance(self.min_hidden_dim, (int, np.integer))
+        assert isinstance(self.max_step_hidden_dim, (int, np.integer))
+        assert isinstance(self.hidden_dim_step, (int, np.integer))
 
         # fixed hyperparameters
         self.activation_func = 'relu'
         self.em_lr = 0.01
-        assert type(self.em_lr) == float or type(self.em_lr) == int
+        assert isinstance(self.em_lr, (float, np.floating, int, np.integer))
 
         # Reduce LR callback (https://keras.io/api/callbacks/reduce_lr_on_plateau/)
         self.em_lr_factor = 0.95
         self.em_lr_patience = 5
         self.em_min_lr = 1e-4
         self.em_lr_min_delta = 5e-9
-        assert type(self.em_lr_factor) == float or type(self.em_lr_factor) == int
-        assert type(self.em_lr_patience) == int
-        assert type(self.em_min_lr) == float or type(self.em_min_lr) == int
-        assert type(self.em_lr_min_delta) == float or type(self.em_lr_min_delta) == int
+        assert isinstance(self.em_lr_factor, (float, np.floating, int, np.integer))
+        assert isinstance(self.em_lr_patience, (int, np.integer))
+        assert isinstance(self.em_min_lr, (float, np.floating, int, np.integer))
+        assert isinstance(self.em_lr_min_delta, (float, np.floating, int, np.integer))
         assert self.em_min_lr <= self.em_lr, "Min LR must be <= initial LR"
 
         # for early stopping (https://keras.io/api/callbacks/early_stopping/)
         self.es_patience = 15
         self.es_min_delta = 1e-10
-        assert type(self.es_patience) == int
-        assert type(self.es_min_delta) == float or type(self.es_min_delta) == int
+        assert isinstance(self.es_patience, (int, np.integer))
+        assert isinstance(self.es_min_delta, (float, np.floating, int, np.integer))
 
         self.time = time.time() # to be saved in files to make them identifiable between different runs
 

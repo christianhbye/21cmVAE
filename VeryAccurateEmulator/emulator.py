@@ -86,7 +86,7 @@ class VeryAccurateEmulator:
 
         self.hidden_dims = kwargs.pop('hidden_dims', self.hidden_dims)
         assert type(self.hidden_dims) == list, "Layer dimensions must be list"
-        assert all(isinstance(h, int) for h in self.hidden_dims), "Dimensions must be int"
+        assert all(isinstance(h, (int, np.integer)) for h in self.hidden_dims), "Dimensions must be int"
         self.activation_func = kwargs.pop('activation_function', self.activation_func)
 
     def get_hyperparameters(self):
@@ -151,16 +151,16 @@ class VeryAccurateEmulator:
         if len(np.shape(self.signal_val) > 1):
             assert np.shape(self.signal_val)[0] == np.shape(self.par_val)[0], \
                 "The number of global signals doesn't match the number of parameter combinations in the validation set"
-        assert type(self.learning_rate) == float or type(self.learning_rate) == int,\
+        assert isinstance(self.learning_rate, (float, np.floating, int, np.integer)),\
             "Learning rate must be float or int"
-        assert type(self.epochs) == int, "Epochs must be int"
-        assert type(self.lr_factor) == float or type(self.lr_factor) == int, "LR factor must be float or int"
-        assert type(self.lr_patience) == int, "LR patience must be int"
-        assert type(self.min_lr) == float or type(self.min_lr) == int, "Min LR must be float or int"
+        assert isinstance(self.epochs, (int, np.integer)), "Epochs must be int"
+        assert isinstance(self.lr_factor, (float, np.floating, int, np.integer)), "LR factor must be float or int"
+        assert isinstance(self.lr_patience, (int, np.integer)), "LR patience must be int"
+        assert isinstance(self.min_lr, (float, np.floating, int, np.integer)), "Min LR must be float or int"
         assert self.min_lr <= self.learning_rate, "Min LR must be <= initial LR"
-        assert type(self.lr_min_delta) == float or type(self.lr_min_delta) == int, "LR min delta must be float or int"
-        assert type(self.es_patience) == int, "ES patience must be int"
-        assert type(self.es_min_delta) == float or type(self.es_min_delta) == int, "ES min delta must be float or int"
+        assert isinstance(self.lr_min_delta, (float, np.floating, int, np.integer)), "LR min delta must be float or int"
+        assert isinstance(self.es_patience, (int, np.integer)), "ES patience must be int"
+        assert isinstance(self.es_min_delta, (float, np.floating, int, np.integer)), "ES min delta must be float or int"
 
         # build direct emulator
         emulator = bm.build_direct_emulator(self.hidden_dims, self.signal_train, self.par_train, self.activation_func)
@@ -404,16 +404,16 @@ class AutoEncoderEmulator:
                 raise KeyError("Unexpected keyword argument in set_hyperparameters()")
 
         self.latent_dim = kwargs.pop('latent_dim', self.latent_dim)
-        assert type(self.latent_dim) == int, "Latent dimension must be int"
+        assert isinstance(self.latent_dim, (int, np.integer)), "Latent dimension must be int"
         self.encoder_dims = kwargs.pop('encoder_dims', self.encoder_dims)
         self.decoder_dims = kwargs.pop('decoder_dims', self.decoder_dims)
         self.em_dims = kwargs.pop('em_dims', self.em_dims)
         assert type(self.encoder_dims) == list, "Encoder layer dimensions must be list"
-        assert all(isinstance(h, int) for h in self.encoder_dims), "Encoder dimensions must be int"
+        assert all(isinstance(h, (int, np.integer)) for h in self.encoder_dims), "Encoder dimensions must be int"
         assert type(self.decoder_dims) == list, "Decoder layer dimensions must be list"
-        assert all(isinstance(h, int) for h in self.decoder_dims), "Decoder dimensions must be int"
+        assert all(isinstance(h, (int, np.integer)) for h in self.decoder_dims), "Decoder dimensions must be int"
         assert type(self.em_dims) == list, "Emulator layer dimensions must be list"
-        assert all(isinstance(h, int) for h in self.emulator_dims), "Emulator dimensions must be int"
+        assert all(isinstance(h, (int, np.integer)) for h in self.emulator_dims), "Emulator dimensions must be int"
         self.activation_func = kwargs.pop('activation_function', self.activation_func)
 
     def get_hyperparameters(self):
@@ -495,28 +495,31 @@ class AutoEncoderEmulator:
         if len(np.shape(self.signal_val) > 1):
             assert np.shape(self.signal_val)[0] == np.shape(self.par_val)[0], \
                 "The number of global signals doesn't match the number of parameter combinations in the validation set"
-        assert type(self.ae_lr) == float or type(self.ae_lr) == int, "Autoencoder learning rate must be float or int"
-        assert type(self.em_lr) == float or type(self.em_lr) == int, "Emulator learning rate must be float or int"
-        assert type(self.epochs) == int, "Epochs must be int"
-        assert type(self.ae_lr_min_delta) == float or type(self.ae_lr_min_delta) == int, \
+        assert isinstance(self.ae_lr, (float, np.floating, int, np.integer)),\
+            "Autoencoder learning rate must be float or int"
+        assert isinstance(self.em_lr, (float, np.floating, int, np.integer)),\
+            "Emulator learning rate must be float or int"
+        assert isinstance(self.epochs, (int, np.integer)), "Epochs must be int"
+        assert isinstance(self.ae_lr_min_delta, (float, np.floating, int, np.integer)), \
             "Autoencoder LR min delta must be float or int"
-        assert type(self.em_lr_min_delta) == float or type(self.em_lr_min_delta) == int,\
+        assert isinstance(self.em_lr_min_delta, (float, np.floating, int, np.integer)),\
             "Emulator LR min delta must be float or int"
-        assert type(self.ae_earlystop_delta) == float or type(self.ae_earlystop_delta) == int,\
+        assert isinstance(self.ae_earlystop_delta, (float, np.floating, int, np.integer)),\
             "Autoencoder ES min delta must be float or int"
-        assert type(self.em_earlystop_delta) == float or type(self.em_earlystop_delta) == int,\
+        assert isinstance(self.em_earlystop_delta, (float, np.floating, int, np.integer)),\
             "Emulator ES min delta must be float or int"
-        assert type(self.ae_lr_factor) == float or type(self.ae_lr_factor) == int,\
+        assert isinstance(self.ae_lr_factor, (float, np.floating, int, np.integer)),\
             "Autoencoder LR factor must be float or int"
-        assert type(self.em_lr_factor) == float or type(self.em_lr_factor) == int,\
+        assert isinstance(self.em_lr_factor, (float, np.floating, int, np.integer)),\
             "Emulator LR factor must be float or int"
-        assert type(self.ae_min_lr) == float or type(self.ae_min_lr) == int, "Autoenocder min LR must be float or int"
+        assert isinstance(self.ae_min_lr, (float, np.floating, int, np.integer)),\
+            "Autoenocder min LR must be float or int"
         assert self.ae_min_lr <= self.ae_lr, "Autoencoder min LR must be <= initial LR"
-        assert type(self.em_min_lr) == float or type(self.em_min_lr) == int, "Emulator min LR must be float or int"
+        assert isinstance(self.em_min_lr, (float, np.floating, int, np.integer)), "Emulator min LR must be float or int"
         assert self.em_min_lr <= self.em_lr, "Emulator min LR must be <= initial LR"
-        assert type(self.ae_lr_patience) == int, "Autoencoder LR patience must be int"
-        assert type(self.em_lr_patience) == int, "Emulator LR patience must be int"
-        assert type(self.es_patience) == int, "ES patience must be int"
+        assert isinstance(self.ae_lr_patience, (int, np.integer)), "Autoencoder LR patience must be int"
+        assert isinstance(self.em_lr_patience, (int, np.integer)), "Emulator LR patience must be int"
+        assert isinstance(self.es_patience, (int, np.integer)), "ES patience must be int"
 
         # hyperparameters
         layer_hps = [self.encoder_dims, self.latent_dim, self.decoder_dims, self.em_dims]
