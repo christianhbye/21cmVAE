@@ -12,7 +12,7 @@ from VeryAccurateEmulator.build_models import build_direct_emulator
 from VeryAccurateEmulator.training_tools import train_emulator
 
 
-def generate_hp(min_val: int, step_size: int, max_step: int) -> int:
+def generate_hp(min_val, step_size, max_step):
     """
     Function that generates one hyperparameter given the search range
     :param min_val: int, min value of the hp
@@ -20,8 +20,14 @@ def generate_hp(min_val: int, step_size: int, max_step: int) -> int:
     :param max_step: int, max multiple of step_size that can be added to min
     :return: int, the hyperparameter
     """
+    assert type(min_val) == int
+    assert type(step_size) == int
+    assert type(max_step) == int
     step = np.random.randint(0, max_step + 1)
-    return min_val + step * step_size
+    assert type(step) == int
+    hp = min_val + step * step_size
+    assert type(hp) == int
+    return hp
 
 
 def generate_layer_hps(no_hidden_layers, hidden_dims):
@@ -37,7 +43,7 @@ def generate_layer_hps(no_hidden_layers, hidden_dims):
     assert all(isinstance(h, int) for h in no_hidden_layers)
     assert all(isinstance(h, int) for h in hidden_dims)
     assert min_hidden_dim > 0
-    #generate hyperparams for layers
+    # generate hyperparams for layers
     number_of_layers = generate_hp(*no_hidden_layers)
     # initialize empty array
     hidden_dim_arr = np.empty(number_of_layers)
@@ -45,6 +51,7 @@ def generate_layer_hps(no_hidden_layers, hidden_dims):
         dim = generate_hp(*hidden_dims)  # dimensionality of each layer
         hidden_dim_arr[i] = dim
     return hidden_dim_arr
+
 
 def save_results(trial, layer_hps, emulator, losses, time):
     """
@@ -80,6 +87,7 @@ def delete_results(trial, time):
     os.remove(fname+'.txt')
     os.remove(fname+'_layer_hps.npy')
 
+
 def get_best_epoch_losses(losses):
     """
     :param losses: tuple of the form (training_loss, validation_loss) for the emulator where each element is
@@ -96,6 +104,7 @@ def get_best_epoch_losses(losses):
     assert len(min_losses) == 2
     assert min_losses[-1] == np.min(validation_loss)
     return min_losses
+
 
 class HyperParameterTuner:
     def __init__(self, max_trials=500, epochs=350, min_hidden_layers=1, h_layer_step=1, max_step_h_layers=4,
@@ -142,24 +151,24 @@ class HyperParameterTuner:
         # fixed hyperparameters
         self.activation_func = 'relu'
         self.em_lr = 0.01
-        assert type(self.em_lr) == float or int
+        assert type(self.em_lr) == float or type(self.em_lr) == int
 
         # Reduce LR callback (https://keras.io/api/callbacks/reduce_lr_on_plateau/)
         self.em_lr_factor = 0.95
         self.em_lr_patience = 5
         self.em_min_lr = 1e-4
         self.em_lr_min_delta = 5e-9
-        assert type(self.em_lr_factor) == float or int
+        assert type(self.em_lr_factor) == float or type(self.em_lr_factor) == int
         assert type(self.em_lr_patience) == int
-        assert type(self.em_min_lr) == float or int
-        assert type(self.em_lr_min_delta) == flaot or int
+        assert type(self.em_min_lr) == float or type(self.em_min_lr) == int
+        assert type(self.em_lr_min_delta) == float or type(self.em_lr_min_delta) == int
         assert self.em_min_lr <= self.em_lr, "Min LR must be <= initial LR"
 
         # for early stopping (https://keras.io/api/callbacks/early_stopping/)
         self.es_patience = 15
         self.es_min_delta = 1e-10
         assert type(self.es_patience) == int
-        assert type(self.es_min_delta) == float or int
+        assert type(self.es_min_delta) == float or type(self.es_min_delta) == int
 
         self.time = time.time() # to be saved in files to make them identifiable between different runs
 

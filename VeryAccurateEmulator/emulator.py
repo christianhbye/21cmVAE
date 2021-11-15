@@ -151,15 +151,16 @@ class VeryAccurateEmulator:
         if len(np.shape(self.signal_val) > 1):
             assert np.shape(self.signal_val)[0] == np.shape(self.par_val)[0], \
                 "The number of global signals doesn't match the number of parameter combinations in the validation set"
-        assert type(self.learning_rate) == float or int, "Learning rate must be float or int"
+        assert type(self.learning_rate) == float or type(self.learning_rate) == int,\
+            "Learning rate must be float or int"
         assert type(self.epochs) == int, "Epochs must be int"
-        assert type(self.lr_factor) == float or int, "LR factor must be float or int"
+        assert type(self.lr_factor) == float or type(self.lr_factor) == int, "LR factor must be float or int"
         assert type(self.lr_patience) == int, "LR patience must be int"
-        assert type(self.min_lr) == float or int, "Min LR must be float or int"
+        assert type(self.min_lr) == float or type(self.min_lr) == int, "Min LR must be float or int"
         assert self.min_lr <= self.learning_rate, "Min LR must be <= initial LR"
-        assert type(self.lr_min_delta) == float or int, "LR min delta must be float or int"
+        assert type(self.lr_min_delta) == float or type(self.lr_min_delta) == int, "LR min delta must be float or int"
         assert type(self.es_patience) == int, "ES patience must be int"
-        assert type(self.es_min_delta) == float or int, "ES min delta must be float or int"
+        assert type(self.es_min_delta) == float or type(self.es_min_delta) == int, "ES min delta must be float or int"
 
         # build direct emulator
         emulator = bm.build_direct_emulator(self.hidden_dims, self.signal_train, self.par_train, self.activation_func)
@@ -494,18 +495,24 @@ class AutoEncoderEmulator:
         if len(np.shape(self.signal_val) > 1):
             assert np.shape(self.signal_val)[0] == np.shape(self.par_val)[0], \
                 "The number of global signals doesn't match the number of parameter combinations in the validation set"
-        assert type(self.ae_lr) == float or int, "Autoencoder learning rate must be float or int"
-        assert type(self.em_lr) == float or int, "Emulator learning rate must be float or int"
+        assert type(self.ae_lr) == float or type(self.ae_lr) == int, "Autoencoder learning rate must be float or int"
+        assert type(self.em_lr) == float or type(self.em_lr) == int, "Emulator learning rate must be float or int"
         assert type(self.epochs) == int, "Epochs must be int"
-        assert type(self.ae_lr_min_delta) == float or int, "Autoencoder LR min delta must be float or int"
-        assert type(self.em_lr_min_delta) == float or int, "Emulator LR min delta must be float or int"
-        assert type(self.ae_earlystop_delta) == float or int, "Autoencoder ES min delta must be float or int"
-        assert type(self.em_earlystop_delta) == float or int, "Emulator ES min delta must be float or int"
-        assert type(self.ae_lr_factor) == float or int, "Autoencoder LR factor must be float or int"
-        assert type(self.em_lr_factor) == float or int, "Emulator LR factor must be float or int"
-        assert type(self.ae_min_lr) == float or int, "Autoenocder min LR must be float or int"
+        assert type(self.ae_lr_min_delta) == float or type(self.ae_lr_min_delta) == int, \
+            "Autoencoder LR min delta must be float or int"
+        assert type(self.em_lr_min_delta) == float or type(self.em_lr_min_delta) == int,\
+            "Emulator LR min delta must be float or int"
+        assert type(self.ae_earlystop_delta) == float or type(self.ae_earlystop_delta) == int,\
+            "Autoencoder ES min delta must be float or int"
+        assert type(self.em_earlystop_delta) == float or type(self.em_earlystop_delta) == int,\
+            "Emulator ES min delta must be float or int"
+        assert type(self.ae_lr_factor) == float or type(self.ae_lr_factor) == int,\
+            "Autoencoder LR factor must be float or int"
+        assert type(self.em_lr_factor) == float or type(self.em_lr_factor) == int,\
+            "Emulator LR factor must be float or int"
+        assert type(self.ae_min_lr) == float or type(self.ae_min_lr) == int, "Autoenocder min LR must be float or int"
         assert self.ae_min_lr <= self.ae_lr, "Autoencoder min LR must be <= initial LR"
-        assert type(self.em_min_lr) == float or int, "Emulator min LR must be float or int"
+        assert type(self.em_min_lr) == float or type(self.em_min_lr) == int, "Emulator min LR must be float or int"
         assert self.em_min_lr <= self.em_lr, "Emulator min LR must be <= initial LR"
         assert type(self.ae_lr_patience) == int, "Autoencoder LR patience must be int"
         assert type(self.em_lr_patience) == int, "Emulator LR patience must be int"
