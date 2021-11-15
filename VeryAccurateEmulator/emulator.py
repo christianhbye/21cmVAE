@@ -85,7 +85,7 @@ class VeryAccurateEmulator:
                 raise KeyError("Unexpected keyword argument in set_hyperparameters()")
 
         self.hidden_dims = kwargs.pop('hidden_dims', self.hidden_dims)
-        assert type(self.hidden_dims) == list, "Layer dimensions must be list"
+        assert isinstance(self.hidden_dims, (list, np.ndarray)), "Layer dimensions must be list"
         assert all(isinstance(h, (int, np.integer)) for h in self.hidden_dims), "Dimensions must be int"
         self.activation_func = kwargs.pop('activation_function', self.activation_func)
 
@@ -408,11 +408,11 @@ class AutoEncoderEmulator:
         self.encoder_dims = kwargs.pop('encoder_dims', self.encoder_dims)
         self.decoder_dims = kwargs.pop('decoder_dims', self.decoder_dims)
         self.em_dims = kwargs.pop('em_dims', self.em_dims)
-        assert type(self.encoder_dims) == list, "Encoder layer dimensions must be list"
+        assert isinstance(self.encoder_dims, (list, np.ndarray)), "Encoder layer dimensions must be list or np.ndarray"
         assert all(isinstance(h, (int, np.integer)) for h in self.encoder_dims), "Encoder dimensions must be int"
-        assert type(self.decoder_dims) == list, "Decoder layer dimensions must be list"
+        assert isinstance(self.decoder_dims, (list, np.ndarray)), "Decoder layer dimensions must be list or np.ndarray"
         assert all(isinstance(h, (int, np.integer)) for h in self.decoder_dims), "Decoder dimensions must be int"
-        assert type(self.em_dims) == list, "Emulator layer dimensions must be list"
+        assert isinstance(self.em_dims, (list, np.ndarray)), "Emulator layer dimensions must be list or np ndarray"
         assert all(isinstance(h, (int, np.integer)) for h in self.emulator_dims), "Emulator dimensions must be int"
         self.activation_func = kwargs.pop('activation_function', self.activation_func)
 
