@@ -1,6 +1,6 @@
 import numpy as np
 import os
-from tensorflow.keras.Models import load_model
+from tensorflow.keras.models import load_model
 from VeryAccurateEmulator import hyperparameter_tuner as hpt
 from VeryAccurateEmulator.training_tools import em_loss_fcn
 
@@ -10,13 +10,18 @@ def test_gen_hp():
     Test that function hpt.generate_hp() returns hps in desired range and of desired type
     :return: None
     """
-    min_vals, step_size, max_step = np.random.randint(1000, size=(1000, 3))
-    hps = hpt.generate_hp(min_vals, step_size, max_step)
-    assert all(isinstance(h, int) for h in hps)
-    max_vals = min_vals + max_step * step_size
-    assert np.less_equal(hps, max_vals)
-    assert np.less_equal(min_vals, hps)
-
+    min_vals, step_sizes, max_steps = np.random.randint(1000, size=(3, 100))
+    assert all(isinstance(mv, int) for mv in min_vals)
+    hpslist = np.empty(100)
+    for i in range(100):
+        min_val, step_size, max_step = min_vals[i], step_sizes[i], max_steps[i]
+        hps = hpt.generate_hp(min_val, step_size, max_step)
+        hpslist[i] = hps
+        assert all(isinstance(h, int) for h in hps)
+        max_vals = min_vals + max_step * step_size
+        assert np.less_equal(hps, max_vals)
+        assert np.less_equal(min_vals, hps)
+    assert not np.allclose(hpslist[0]*np.ones_like(hpslist), hpslist)
 
 def test_gen_layers():
     """
