@@ -18,7 +18,7 @@ def build_direct_emulator(layer_hps, signal_train, par_train, activation_func='r
     :return: the emulator as a keras model object
     """
     assert type(layer_hps) == list, "Layer hps must be a list"
-    assert all(isinstance(h, int) for h in layer_hps), "Dimensions must be int"
+    assert all(isinstance(h, (int, np.integer)) for h in layer_hps), "Dimensions must be int"
     if len(np.shape(signal_train)) > 1:
         assert np.shape(signal_train)[0] == np.shape(par_train)[0], "Training set needs equally many signals and params"
     em_input_par = Input(shape=(par_train.shape[1],), name='em_input')
@@ -45,9 +45,9 @@ def build_autoencoder(layer_hps, signal_train, activation_func='relu'):
     """
     assert type(layer_hps) == list, "Layer hps must be a list"
     assert len(layer_hps) == 4, "Layer hps should have one element for each of encoder, decoder, emulator, latent dim"
-    assert all(isinstance(h, int) for h in layer_hps[0]), "Encoder dimensions must be int"
-    assert all(isinstance(h, int) for h in layer_hps[2]), "Decoder dimensions must be int"
-    assert all(isinstance(h, int) for h in layer_hps[3]), "Emulator dimensions must be int"
+    assert all(isinstance(h, (int, np.integer)) for h in layer_hps[0]), "Encoder dimensions must be int"
+    assert all(isinstance(h, (int, np.integer)) for h in layer_hps[2]), "Decoder dimensions must be int"
+    assert all(isinstance(h, (int, np.integer)) for h in layer_hps[3]), "Emulator dimensions must be int"
     assert type(layer_hps[1]) == int, "Latent dimension must be int"
     if len(np.shape(signal_train)) > 1:
         assert np.shape(signal_train)[0] == np.shape(par_train)[0], "Training set needs equally many signals and params"
