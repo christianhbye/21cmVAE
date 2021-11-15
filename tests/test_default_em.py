@@ -40,4 +40,4 @@ def test_data():
 
 def test_hps():
     assert type(default_em.hidden_dims) == list, "Emulator hidden dimensions must be list"
-    assert all(isinstance(h, int) for h in default_em.hidden_dims), "Hidden dimensions must be int"
+    assert all(isinstance(h, (int, np.integer)) for h in default_em.hidden_dims), "Hidden dimensions must be int"

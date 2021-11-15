@@ -15,12 +15,11 @@ def test_gen_hp():
     hpslist = np.empty(100)
     for i in range(100):
         min_val, step_size, max_step = min_vals[i], step_sizes[i], max_steps[i]
-        hps = hpt.generate_hp(min_val, step_size, max_step)
-        hpslist[i] = hps
-        assert all(isinstance(h, (int, np.integer)) for h in hps)
-        max_vals = min_vals + max_step * step_size
-        assert np.less_equal(hps, max_vals)
-        assert np.less_equal(min_vals, hps)
+        hp = hpt.generate_hp(min_val, step_size, max_step)
+        hpslist[i] = hp
+        assert isinstance(hp, (int, np.integer))
+        max_val = min_val + max_step * step_size
+        assert min_val <= hp <= max_val
     assert not np.allclose(hpslist[0]*np.ones_like(hpslist), hpslist)
 
 def test_gen_layers():
@@ -30,12 +29,12 @@ def test_gen_layers():
     """
     x = np.random.randint(1, 1000, size=(3, 2))
     no_hidden_layers, hidden_dims = x.T
-    hdims_arr = hpt.generate_layers_hps(no_hidden_layers, hidden_dims)
-    assert len(hdims_arr.shape) == 1
+    hdims_arr = hpt.generate_layer_hps(no_hidden_layers, hidden_dims)
+    assert len(np.shape(hdims_arr)) == 1
     max_number_of_layers = no_hidden_layers[0] + no_hidden_layers[1] * no_hidden_layers[2]
-    assert hdims_arr.shape[0] <= max_number_of_layers
+    assert np.shape(hdims_arr)[0] <= max_number_of_layers
     max_dim = hidden_dims[0] + hidden_dims[1] * hidden_dims[2]
-    assert 0 < hdims_arr.all() <= max_dim
+    assert 0 < all(hdims_arr) <= max_dim
 
 
 def test_gen_0layers():
@@ -43,14 +42,15 @@ def test_gen_0layers():
     Test that we get the expected output if we try to generate 0 layers
     """
     hidden_dims = np.random.randint(1, 1000, size=3)  # can be arbitrary in this test
-    hdims_arr = hpt.generate_layers_hps((0, 0, 0), *hidden_dims)
-    assert hdims_arr.shape == (0,)
+    hdims_arr = hpt.generate_layer_hps((0, 0, 0), hidden_dims)
+    assert np.shape(hdims_arr) == (0,)
 
 def test_run_tuner():
-    nfiles = len(os.listdir())  # ensures all files created here gets deleted
-    max_trials = 10
-    epochs = 30
-    x = np.random.randint(1, 1000, size=(3, 2))
+    files_before = os.listdir()
+    nfiles = len(files_before)  # ensures all files created here gets deleted
+    max_trials = 6
+    epochs = 5
+    x = np.random.randint(1, 50, size=(3, 2))
     no_hidden_layers, hidden_dims = x.T
     tuner = hpt.HyperParameterTuner(max_trials, epochs, *no_hidden_layers, *hidden_dims)
     tuner.save_sr()
@@ -81,3 +81,8 @@ def test_run_tuner():
         os.remove(fname+'_layer_hps.npy')
     os.remove('tuner_results.npz')
     os.remove('best_emulator_{:.0f}.h5'.format(time))
+    files_now = os.listdir()
+    if len(files_now) > nfiles:
+        print("Not all files got deleted")
+        print(np.diff(files_before, files_now))
+        raise AssertionError

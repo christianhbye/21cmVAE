@@ -42,15 +42,16 @@ def generate_layer_hps(no_hidden_layers, hidden_dims):
     assert len(hidden_dims) == 3
     assert all(isinstance(h, (int, np.integer)) for h in no_hidden_layers)
     assert all(isinstance(h, (int, np.integer)) for h in hidden_dims)
+    min_hidden_dim = hidden_dims[0]
     assert min_hidden_dim > 0
     # generate hyperparams for layers
     number_of_layers = generate_hp(*no_hidden_layers)
     # initialize empty array
-    hidden_dim_arr = np.empty(number_of_layers)
+    hidden_dim_list = []
     for i in range(number_of_layers):
         dim = generate_hp(*hidden_dims)  # dimensionality of each layer
-        hidden_dim_arr[i] = dim
-    return hidden_dim_arr
+        hidden_dim_list.append(dim)
+    return hidden_dim_list
 
 
 def save_results(trial, layer_hps, emulator, losses, time):
@@ -170,7 +171,7 @@ class HyperParameterTuner:
         assert isinstance(self.es_patience, (int, np.integer))
         assert isinstance(self.es_min_delta, (float, np.floating, int, np.integer))
 
-        self.time = time.time() # to be saved in files to make them identifiable between different runs
+        self.time = time.time()  # to be saved in files to make them identifiable between different runs
 
     # save search range
     def save_sr(self):
