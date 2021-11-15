@@ -11,13 +11,13 @@ def test_gen_hp():
     :return: None
     """
     min_vals, step_sizes, max_steps = np.random.randint(1000, size=(3, 100))
-    assert all(isinstance(mv, int) for mv in min_vals)
+    assert all(isinstance(mv, (int, np.integer)) for mv in min_vals)
     hpslist = np.empty(100)
     for i in range(100):
         min_val, step_size, max_step = min_vals[i], step_sizes[i], max_steps[i]
         hps = hpt.generate_hp(min_val, step_size, max_step)
         hpslist[i] = hps
-        assert all(isinstance(h, int) for h in hps)
+        assert all(isinstance(h, (int, np.integer)) for h in hps)
         max_vals = min_vals + max_step * step_size
         assert np.less_equal(hps, max_vals)
         assert np.less_equal(min_vals, hps)
