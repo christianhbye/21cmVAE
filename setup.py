@@ -21,9 +21,6 @@ setup(
     url='https://github.com/christianhbye/21cmVAE',
     packages=['VeryAccurateEmulator'],
     python_requires='>=3.6',
-    install_requires=open('requirements.txt').read().splitlines(),
-    extras_require={'interactive': ['matplotlib', 'jupyter', 'ipykernel'],
-                    'tests': ['pytest']},
     license='MIT',
     classifiers=[
                'Intended Audience :: Science/Research',
