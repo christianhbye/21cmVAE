@@ -8,7 +8,7 @@ from VeryAccurateEmulator import build_models as bm
 from VeryAccurateEmulator import preprocess as pp
 
 
-SCRIPT_PATH = os.path.realpath(__file__)[:-len('VeryAccurateEmulator.py')]
+SCRIPT_PATH = os.path.realpath(__file__)[:-len('emulator.py')]
 
 
 class VeryAccurateEmulator:
