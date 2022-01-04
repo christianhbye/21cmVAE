@@ -20,6 +20,7 @@ setup(
     author_email='chb@berkeley.edu',
     url='https://github.com/christianhbye/21cmVAE',
     packages=['VeryAccurateEmulator'],
+    include_package_data=True,
     python_requires='>=3.6',
     license='MIT',
     classifiers=[

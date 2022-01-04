@@ -1,2 +1,3 @@
-include dataset_21cmVAE
-include models/
+include VeryAccurateEmulator/dataset_21cmVAE.h5
+include VeryAccurateEmulator/models/*
+include VeryAccurateEmulator/models/autoencoder_based_emulator/*
