@@ -1,5 +1,8 @@
 .ipynb_checkpoints/
 __pycache__/
 checkpoints/
-dataset_21cmVAE.h5
+VeryAccurateEmulator/dataset_21cmVAE.h5
 RESULTS
+build/
+dist/
+VeryAccurateEmulator.egg-info/
