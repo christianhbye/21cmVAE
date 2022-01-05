@@ -209,7 +209,7 @@ class VeryAccurateEmulator:
         parameters to try at once (for  a vectorised call)
         :param test_signals: array with shape (N, 451) [451 is flexible, depends on what signals the model is trained on]
         of global signals corresponding to the test parameters
-        :param relative: boolean, whether the error computed should be relative or absolute
+        :param relative: boolean, whether the error computed should be relative (% of amplitude) or absolute (mK)
         :param flow: float or None, lower bound for range of frequencies over which the rms error is computed. If None,
         there's no lower bound.
         :param fhigh: float or None, upper bound for range of frequencies over which the rms error is computed. If None,
@@ -231,11 +231,6 @@ class VeryAccurateEmulator:
             assert np.shape(test_params)[0] == np.shape(test_signals)[0],\
                 "Number of test params and signals aren't equal"
 
-        if flow is not None or fhigh is not None:
-            if relative:
-                print("One or two frequency bounds are specified, but 'relative' is set to True so the relative"
-                      " error will be computed and the frequency bounds ignored. Did you mean to set relative=False?")
-
         predicted_signal_input = self.predict(test_params)
         true_signal_input = test_signals
         assert predicted_signal_input.shape == true_signal_input.shape
@@ -245,25 +240,27 @@ class VeryAccurateEmulator:
         else:
             predicted_signal = predicted_signal_input.copy()
             true_signal = true_signal_input.copy()
-        if not relative:
-            nu_arr = self.nu_sampling
-            assert nu_arr.shape[0] == predicted_signal.shape[1], "double check 21cmVAE.nu_sampling, it " \
-                                                                 "does not seem to match the shape of the" \
-                                                                 "predicted signal"
-            if flow and fhigh:
-                f = np.argwhere((nu_arr >= flow) & (nu_arr <= fhigh))[:, 0]
-                predicted_signal = predicted_signal[:, f]
-                true_signal = true_signal[:, f]
-            elif flow:
-                f1 = np.argwhere(nu_arr >= flow)
-                predicted_signal = predicted_signal[:, f1]
-                true_signal = true_signal[:, f1]
-            elif fhigh:
-                f2 = np.argwhere(nu_arr <= fhigh)
-                predicted_signal = predicted_signal[:, f2]
-                true_signal = true_signal[:, f2]
+        
+
+        nu_arr = self.nu_sampling
+        assert nu_arr.shape[0] == predicted_signal.shape[1], "double check 21cmVAE.nu_sampling, it"\
+                "does not seem to match the shape of the predicted signal"
+        
+        if flow and fhigh:
+            f = np.argwhere((nu_arr >= flow) & (nu_arr <= fhigh))[:, 0]
+            predicted_signal = predicted_signal[:, f]
+            true_signal = true_signal[:, f]
+        elif flow:
+            f1 = np.argwhere(nu_arr >= flow)
+            predicted_signal = predicted_signal[:, f1]
+            true_signal = true_signal[:, f1]
+        elif fhigh:
+            f2 = np.argwhere(nu_arr <= fhigh)
+            predicted_signal = predicted_signal[:, f2]
+            true_signal = true_signal[:, f2]
         num = np.sqrt(np.mean((predicted_signal - true_signal) ** 2, axis=1))
-        if relative:  # give error as fraction of amplitude
+
+        if relative:  # give error as fraction of amplitude in the desired band
             den = np.max(np.abs(true_signal), axis=1)
         else:  # give error in mK
             den = 1
