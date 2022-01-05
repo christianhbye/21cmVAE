@@ -41,7 +41,7 @@ def par_transform(parameters, params_train):
     fx = parameters[:, 2].copy()  # fx
     fx[fx == 0] = 10**(-6)  # to avoid -inf in cases where fx == 0
     newcols12 = np.log10(cols12)  # log of fstar and Vc
-    newfx = np.log(fx)  # log of fx
+    newfx = np.log10(fx)  # log of fx
 
     # initialize arrays with processed parameters:
     newparams = np.empty(parameters.shape)  # initialize array with new parameters
@@ -54,7 +54,7 @@ def par_transform(parameters, params_train):
     fx_tr = params_train[:, 2].copy()  # fx
     fx_tr[fx_tr == 0] = 10 ** (-6)  # to avoid -inf in cases where fx == 0
     newcols12_tr = np.log10(cols12_tr)  # log of fstar and Vc
-    newfx_tr = np.log(fx_tr)  # log of fx
+    newfx_tr = np.log10(fx_tr)  # log of fx
     newparams_tr = np.empty(params_train.shape)  # initialize array with new parameters
     newparams_tr[:, :2] = newcols12_tr  # copy the log of fstar and Vc
     newparams_tr[:, 2] = newfx_tr  # the log of fx
