@@ -195,39 +195,46 @@ class VeryAccurateEmulator:
                 "Global signals in training and validation set must be" \
                 "sampled at equally many redshifts"
         assert np.shape(self.par_train)[-1] == np.shape(self.par_val)[-1], \
-            "Training and validation set must have equally many," \
+            "Training and validation set must have equally many" \
             "astrophysical parameters"
         if len(np.shape(self.signal_train) > 1):
             assert np.shape(self.signal_train)[0]
             == np.shape(self.par_train)[0], \
-                    "The number of global signals doesn't match the number," \
+                    "The number of global signals doesn't match the number" \
                     "of parameter combinations in the training set"
         if len(np.shape(self.signal_val) > 1):
             assert np.shape(self.signal_val)[0] == np.shape(self.par_val)[0], \
-                "The number of global signals doesn't match the number of,"\ 
+                "The number of global signals doesn't match the number of" \ 
                 "parameter combinations in the validation set"
-        assert isinstance(self.learning_rate, (float, np.floating, int, np.integer)),\
-            "Learning rate must be float or int"
-        assert isinstance(self.epochs, (int, np.integer)), "Epochs must be int"
-        assert isinstance(self.lr_factor, (float, np.floating, int, np.integer)), "LR factor must be float or int"
-        assert isinstance(self.lr_patience, (int, np.integer)), "LR patience must be int"
-        assert isinstance(self.min_lr, (float, np.floating, int, np.integer)), "Min LR must be float or int"
         assert self.min_lr <= self.learning_rate, "Min LR must be <= initial LR"
-        assert isinstance(self.lr_min_delta, (float, np.floating, int, np.integer)), "LR min delta must be float or int"
-        assert isinstance(self.es_patience, (int, np.integer)), "ES patience must be int"
-        assert isinstance(self.es_min_delta, (float, np.floating, int, np.integer)), "ES min delta must be float or int"
 
         # build direct emulator
-        emulator = bm.build_direct_emulator(self.hidden_dims, self.signal_train, self.par_train, self.activation_func)
+        emulator = bm.build_direct_emulator(
+                self.hidden_dims,
+                self.signal_train,
+                self.par_train,
+                self.activation_func
+                )
 
         # update the default models
         self.emulator = emulator
         
         # train the emulator
-        losses = train_emulator(emulator, self.signal_train, self.signal_val, self.par_train, self.par_val, self.epochs,
-                                self.learning_rate, self.lr_factor, self.lr_patience, self.lr_min_delta, self.min_lr,
-                                self.es_min_delta, self.es_patience)
-        assert len(losses) == 2, "train_emulator() should return training and validation losses"
+        losses = train_emulator(
+                emulator,
+                self.signal_train,
+                self.signal_val,
+                self.par_train,
+                self.par_val,
+                self.epochs,
+                self.learning_rate,
+                self.lr_factor,
+                self.lr_patience,
+                self.lr_min_delta,
+                self.min_lr,
+                self.es_min_delta,
+                self.es_patience
+                )
         self.train_losses = losses[0]
         self.val_losses = losses[1]
         if len(losses[0]) < self.epochs:
@@ -235,21 +242,25 @@ class VeryAccurateEmulator:
 
     def predict(self, params):
         """
-        Predict global signals from input parameters. The training parameters and training signals matters
-        for inverting the preprocessing of signals so these parameters must correspond to the training set the emulator
-        was trained on. These parameters are set correctly if a model is trained with the train() function or
-        the default model is used. Otherwise, the properties must be updated manually with 21cmVAE.par_train = ...
+        Predict global signals from input parameters. The training parameters
+        and training signals matters for inverting the preprocessing of signals
+        so these parameters must correspond to the training set the emulator
+        was trained on. These parameters are set correctly if a model is trained
+        with the train() function or the default model is used. Otherwise, the
+        properties must be updated manually with 21cmVAE.par_train = ...
         and 21cmVAE.signal_train = ...
-        :param params: Array of shape (N, 7) where N = number of signals to predict and the columns are the values
-        of the parameters. The parameters must be in the order [fstar, Vc, fx, tau, alpha, nu_min, Rmfp]
+
+        :param params: Array of shape (N, 7) where N = number of signals to
+        predict and the columns are the values of the parameters. The parameters
+        must be in the order [fstar, Vc, fx, tau, alpha, nu_min, Rmfp]
         :return: Array with shape (N, 451) where each row is a global signal
         """
         model = self.emulator
         training_params = self.par_train
         training_signals = self.signal_train
-        transformed_params = pp.par_transform(params, training_params)  # transform the input parameters
-        preprocessed_signal = model.predict(transformed_params)  # predict signal with emulator
-        predicted_signal = pp.unpreproc(preprocessed_signal, training_signals)  # unpreprocess the signal
+        transformed_params = pp.par_transform(params, training_params)
+        preprocessed_signal = model.predict(transformed_params)
+        predicted_signal = pp.unpreproc(preprocessed_signal, training_signals)  
         if predicted_signal.shape[0] == 1:
             return predicted_signal[0, :]
         else:
@@ -257,24 +268,31 @@ class VeryAccurateEmulator:
 
     def compute_rms_error(self, **kwargs):
         """
-        Computes the rms error as given in the paper, either a relative error or an absolute error in mK. If absolute
-        error, then different frequency bands can be chosen.
-        Possible kwargs
-        :param test_params: array, with shape (N, 7) of parameters to test on where N is the number of different
-        parameters to try at once (for  a vectorised call)
-        :param test_signals: array with shape (N, 451) [451 is flexible, depends on what signals the model is trained on]
+        Computes the rms error as given in the paper, either a relative error or
+        an absolute error in mK. Different frequency bands can be chosen.
+
+        Possible kwargs are
+        :param test_params: array, with shape (N, 7) of parameters to test on
+        where N is the number of different parameters to try at once
+        (for a vectorised call)
+        :param test_signals: array with shape (N, 451)
+        [451 is flexible, depends on what signals the model is trained on]
         of global signals corresponding to the test parameters
-        :param relative: boolean, whether the error computed should be relative (% of amplitude) or absolute (mK)
-        :param flow: float or None, lower bound for range of frequencies over which the rms error is computed. If None,
-        there's no lower bound.
-        :param fhigh: float or None, upper bound for range of frequencies over which the rms error is computed. If None,
-        there's no upper bound.
+        :param relative: boolean, whether the error computed should be relative
+        (% of amplitude) or absolute (mK)
+        :param flow: float or None, lower bound for range of frequencies over
+        which the rms error is computed. If None, there's no lower bound.
+        :param fhigh: float or None, upper bound for range of frequencies over
+        which the rms error is computed. If None, there's no upper bound.
         :return: array of shape (N, ), each row is the error for that signal
         """
         for key, values in kwargs.items():
             if key not in set(
-                    ['test_params', 'test_signals', 'relative', 'flow', 'fhigh']):
-                raise KeyError("Unexpected keyword argument in compute_rms_error()")
+                    ['test_params', 'test_signals', 'relative', 'flow', 'fhigh']
+                    ):
+                raise KeyError(
+                        "Unexpected keyword argument in compute_rms_error()"
+                        )
 
         test_params = kwargs.pop('test_params', self.par_test)
         test_signals = kwargs.pop('test_signals', self.signal_test)
@@ -298,8 +316,9 @@ class VeryAccurateEmulator:
         
 
         nu_arr = self.nu_sampling
-        assert nu_arr.shape[0] == predicted_signal.shape[1], "double check 21cmVAE.nu_sampling, it"\
-                "does not seem to match the shape of the predicted signal"
+        assert nu_arr.shape[0] == predicted_signal.shape[1], \
+                "double check 21cmVAE.nu_sampling, it does not seem to match" \
+                "the shape of the predicted signal"
         
         if flow and fhigh:
             f = np.argwhere((nu_arr >= flow) & (nu_arr <= fhigh))[:, 0]
