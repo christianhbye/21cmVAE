@@ -3,18 +3,23 @@ import numpy as np
 import os
 import tensorflow as tf
 
-from VeryAccurateEmulator.training_tools import train_emulator, train_ae_emulator, em_loss_fcn
+from VeryAccurateEmulator.training_tools import (
+        train_emulator,
+        train_ae_emulator, 
+        em_loss_fcn
+        )
 from VeryAccurateEmulator import build_models as bm
 from VeryAccurateEmulator import preprocess as pp
+from VeryAccurateEmulator import __path__
 
-
-SCRIPT_PATH = os.path.realpath(__file__)[:-len('emulator.py')]
+SCRIPT_PATH = __path__[0]
 
 
 class VeryAccurateEmulator:
     def __init__(self, **kwargs):
         """
-        :param emulator: Keras model object, sets the default direct emulator if you have one
+        :param emulator: Keras model object, sets the default direct emulator 
+        if you have one
         :return: None
         """
         # initialize training set, validation set, and test set variables
@@ -26,45 +31,66 @@ class VeryAccurateEmulator:
             self.par_val = hf['par_val'][:]
             self.par_test = hf['par_test'][:]
 
-        self.par_labels = ['fstar', 'Vc', 'fx', 'tau', 'alpha', 'nu_min', 'Rmfp']
+        self.par_labels = [
+                'fstar', 
+                'Vc', 
+                'fx', 
+                'tau', 
+                'alpha', 
+                'nu_min', 
+                'Rmfp'
+                ]
 
         # initialize standard hyperparameters (used for the pretrained model)
         self.hidden_dims = [288, 352, 288, 224]
-        self.activation_func = 'relu'  # activation function in all hidden layers
+        self.activation_func = 'relu'  # activation function in hidden layers
 
         # initialize parameters for training
-        self.epochs = 350  # max number of epochs (can be less due to early stopping)
+        self.epochs = 350  # max number of epochs 
         self.learning_rate = 0.01  # initial learning rate for emulator
 
         # Parameters that control the learning rate schedule during training
-        # (see https://keras.io/api/callbacks/reduce_lr_on_plateau/): if the loss doesn't decrease by more than
-        # [lr_min_delta] for [lr_patience] number of epochs, LR is multiplied by [lr_factor]
+        # (see https://keras.io/api/callbacks/reduce_lr_on_plateau/): 
+        # if the loss doesn't decrease by more than [lr_min_delta] for 
+        # [lr_patience] number of epochs, LR is multiplied by [lr_factor]
         self.lr_min_delta = 5e-9
         self.lr_factor = 0.95
         self.lr_patience = 5  
         self.min_lr = 1e-4  # minimum allowed lr
-        # similar parameters for for early stopping (https://keras.io/api/callbacks/early_stopping/)
+        # similar parameters for early stopping 
+        # (https://keras.io/api/callbacks/early_stopping/)
         self.es_patience = 15
         self.es_min_delta = 1e-10
 
         for key, values in kwargs.items():
             if key not in set(['emulator']):
-                raise KeyError("Unexpected keyword argument passed to class VeryAccurateEmulator")
+                raise KeyError(
+                'Unexpected keyword argument passed to class' \ 
+                'VeryAccurateEmulator'
+                )
         
         # the default emulator is 21cmVAE:
-        self.emulator = kwargs.pop('emulator', tf.keras.models.load_model(
-            SCRIPT_PATH+'models/emulator.h5', custom_objects={'loss_function': em_loss_fcn(self.signal_train)}))
+        self.emulator = kwargs.pop(
+                'emulator',
+                tf.keras.models.load_model(
+                    SCRIPT_PATH+'models/emulator.h5', 
+                    custom_objects={
+                        'loss_function': em_loss_fcn(self.signal_train)
+                        }
+                    )
+                )
         
-        # initialize lists with losses, these get updated when models are trained
+        # initialize lists with losses, which are updated during training
         self.train_losses = []  # training set losses
         self.val_losses = []  # validation set losses
 
-        # sampling redshifts: it is possible to train with signals that are not sampled with the same resolution
-        # or across the same redshift/frequency range. In that case, these properties should be updated.
+        # sampling redshifts: it is possible to train with signals that are not
+        # sampled with the same resolution or across the same redshift/frequency
+        # range. In that case, these properties should be updated.
         self.z_sampling = np.arange(5, 50 + 0.1, 0.1)  # redshifts
 
         def z_to_nu(redshift):
-            rest_frequency = 1420405751.7667  # rest frequency in Hz of the 21-cm transition
+            rest_frequency = 1420405751.7667  # rest frequency in Hz
             freqs = rest_frequency / (1 + redshift)
             freqs /= 1e6  # convert to MHz
             return freqs
@@ -75,23 +101,28 @@ class VeryAccurateEmulator:
         """
         Set the hyperparameters of the model.
         Possible **kwargs are:
-        hidden_dims: list of ints, dimensions of each direct emulator layer, e.g [288, 352, 288, 224]
-        activation_function: str, name of a keras recognized activation function or a tf.keras.activations instance
-        (see https://keras.io/api/layers/activations/). Used in all hidden layers.
+        hidden_dims: list of ints, dimensions of each direct emulator layer, 
+        e.g [288, 352, 288, 224]
+        activation_function: str, name of a keras recognized activation function
+        or a tf.keras.activations instance
+        (see https://keras.io/api/layers/activations/). Used in hidden layers.
         :return: None
         """
         for key, values in kwargs.items():
             if key not in set(['hidden_dims', 'activation_func']):
-                raise KeyError("Unexpected keyword argument in set_hyperparameters()")
+                raise KeyError(
+                        "Unexpected keyword argument in set_hyperparameters()"
+                        )
 
         self.hidden_dims = kwargs.pop('hidden_dims', self.hidden_dims)
-        assert isinstance(self.hidden_dims, (list, np.ndarray)), "Layer dimensions must be list"
-        assert all(isinstance(h, (int, np.integer)) for h in self.hidden_dims), "Dimensions must be int"
-        self.activation_func = kwargs.pop('activation_function', self.activation_func)
+        self.activation_func = kwargs.pop(
+                'activation_function',
+                self.activation_func
+                )
 
     def get_hyperparameters(self):
         """
-        Method that prints the current hyperparameters. Takes no input arguments.
+        Method that prints the current hyperparameters. Takes no input args.
         :return: None
         """
         print('Hyperparameters are set to:')
@@ -107,23 +138,41 @@ class VeryAccurateEmulator:
         par_val: numpy array of validation set parameters
         learning_rate: float, initial learning rate of emulator
         epochs: int, number of epochs to train for
-        lr_factor: float, factor * old LR (learning rate) is the new LR for the emulator (used for LR schedule)
-        lr_patience: float, max number of epochs loss has not decreased for the emulator before reducing LR
-        (used for LR schedule)
+        lr_factor: float, factor * old LR (learning rate) is the new LR for the
+        emulator (used for LR schedule)
+        lr_patience: float, max number of epochs loss has not decreased for the
+        emulator before reducing LR (used for LR schedule)
         min_lr: float, minimum allowed learning rate for emulator
         lr_min_delta: float, min delta in validation loss before LR is reduced
-        es_patience: float, max number of epochs loss has not decreased before early stopping
-        es_min_delta: float, min delta in validation loss before early stoppping is applied
+        es_patience: float, max number of epochs loss has not decreased before
+        early stopping
+        es_min_delta: float, min delta in validation loss before early stoppping
+        is applied
         
-        Note: For more information about the LR schedule and Early stopping callbacks, please see:
-        https://keras.io/api/callbacks/reduce_lr_on_plateau/ and https://keras.io/api/callbacks/early_stopping/
+        Note: For more information about the LR schedule and Early stopping
+        callbacks, please see:
+        https://keras.io/api/callbacks/reduce_lr_on_plateau/
+        https://keras.io/api/callbacks/early_stopping/
 
         :return: None
         """
         for key, values in kwargs.items():
             if key not in set(
-                    ['signal_train', 'par_train', 'signal_val', 'par_val', 'learning_rate', 'epochs',
-                     'lr_factor', 'lr_patience', 'min_lr', 'lr_min_delta', 'es_patience', 'es_min_delta']):
+                    [
+                        'signal_train',
+                        'par_train',
+                        'signal_val',
+                        'par_val',
+                        'learning_rate',
+                        'epochs',
+                        'lr_factor',
+                        'lr_patience',
+                        'min_lr',
+                        'lr_min_delta',
+                        'es_patience',
+                        'es_min_delta'
+                        ]
+                    ):
                 raise KeyError("Unexpected keyword argument in train()")
 
         # update the properties
@@ -141,16 +190,22 @@ class VeryAccurateEmulator:
         self.es_min_delta = kwargs.pop('es_min_delta', self.es_min_delta)
 
         # check that properties are set consistently
-        assert np.shape(self.signal_train)[-1] == np.shape(self.signal_val)[-1], \
-            "Global signals in training and validation set must be sampled at equally many redshifts"
+        assert np.shape(self.signal_train)[-1]
+        == np.shape(self.signal_val)[-1], \
+                "Global signals in training and validation set must be" \
+                "sampled at equally many redshifts"
         assert np.shape(self.par_train)[-1] == np.shape(self.par_val)[-1], \
-            "Training and validation set must have equally many astrophysical parameters"
+            "Training and validation set must have equally many," \
+            "astrophysical parameters"
         if len(np.shape(self.signal_train) > 1):
-            assert np.shape(self.signal_train)[0] == np.shape(self.par_train)[0], \
-                "The number of global signals doesn't match the number of parameter combinations in the training set"
+            assert np.shape(self.signal_train)[0]
+            == np.shape(self.par_train)[0], \
+                    "The number of global signals doesn't match the number," \
+                    "of parameter combinations in the training set"
         if len(np.shape(self.signal_val) > 1):
             assert np.shape(self.signal_val)[0] == np.shape(self.par_val)[0], \
-                "The number of global signals doesn't match the number of parameter combinations in the validation set"
+                "The number of global signals doesn't match the number of,"\ 
+                "parameter combinations in the validation set"
         assert isinstance(self.learning_rate, (float, np.floating, int, np.integer)),\
             "Learning rate must be float or int"
         assert isinstance(self.epochs, (int, np.integer)), "Epochs must be int"
