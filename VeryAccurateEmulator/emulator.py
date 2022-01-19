@@ -344,44 +344,69 @@ class VeryAccurateEmulator:
 class AutoEncoderEmulator:
     def __init__(self, **kwargs):
         """
-        :param autoencoder: Keras model object, sets the default Autoencoder if you already have a trained one. If so, then also an encoder
-        and decoder must be set!
-        :param encoder: Keras model object, sets the default Encoder if you have one. Must be provided if decoder is provided.
-        :param decoder:  Keras model object, sets the default Decoder if you have one. Must be provided if encoder is provided.
-        :param emulator: Keras model object, sets the default emulator if you have one.
-        These models can be loaded from file with tf.keras.models.load_model(). If None, then the trained models
-        giving the best performance in Bye et al. 2021 will be default (the h5 files are in the 'models' directory).
-        Please note: the models *must* be Keras model objects (or None) for things to work properly if they're used.
-        The default models will be updated to the most recently trained models with the train() method.
+        :param autoencoder: Keras model object, sets the default Autoencoder if
+        you already have a trained one. If so, then also an encoder and decoder
+        must be set!
+        :param encoder: Keras model object, sets the default Encoder if you have
+        one. Must be provided if decoder is provided.
+        :param decoder:  Keras model object, sets the default Decoder if you
+        have one. Must be provided if encoder is provided.
+        :param emulator: Keras model object, sets the default emulator if you
+        have one.
         
-        A note about the Autoencoder, Encoder and Decoder kwargs: By definition, Decoder(Encoder(x)) == Autoencoder(x) - if you use custom
-        models you must ensure this is the case. An AssertionError will be raised otherwise.
-        Moreover, this property requires the following combination of input parameters:
+        These models can be loaded from file with tf.keras.models.load_model().
+        If None, then the trained models giving the best performance in 
+        Bye et al. 2022 will be default (the h5 files are in the 'models'
+        directory).
+        
+        Please note: the models *must* be Keras model objects (or None) for
+        things to work properly if they're used.
+        The default models will be updated to the most recently trained models
+        with the train() method.
+        
+        A note about the Autoencoder, Encoder and Decoder kwargs: By definition,
+        Decoder(Encoder(x)) == Autoencoder(x) - if you use custom
+        models you must ensure this is the case. An AssertionError will be
+        raised otherwise.
+        
+        Moreover, this property requires the following combination of input
+        parameters:
         (1) No autoencoder, no encoder, no decoder
-        (2) No autoencoder, but encoder and decoder. In this case, the auteoncoder will be defined as Auteoncder = Decoder(Encoder)
-        (3) All three. In this case they need to satisfy Autoencoder = Decoder(Encoder)
-        If another combination of input parameters are given, they will have no effect (kwargs will be reset to default).
+        (2) No autoencoder, but encoder and decoder. In this case, the
+        auteoncoder will be defined as Auteoncder = Decoder(Encoder)
+        (3) All three. In this case they need to satisfy
+        Autoencoder = Decoder(Encoder)
+        
+        If another combination of input parameters are given, they will have no
+        effect (kwargs will be reset to default).
         
         :return: None
         """
         for key, values in kwargs.items():
             if key not in set(
                     ['autoencoder', 'encoder', 'decoder', 'emulator']):
-                raise KeyError("Unexpected keyword argument in class AutoEncoderEmulator")
+                raise KeyError(
+                        "Unexpected keyword argument in class" \
+                                "AutoEncoderEmulator"
+                                )
                 
         # checking for input combinations (see docstring):
         if 'encoder' not in kwargs:
             if 'autoencoder' in kwargs:
-                print('Kwarg autoencoder without encoder has no effect. Resetting to default autoencoder.')
+                print('Kwarg autoencoder without encoder has no effect.'\
+                        'Resetting to default autoencoder.')
                 kwargs.pop('autoencoder')
             if 'decoder' in kwargs:
-                print('Kwarg decoder without encoder has no effect. Resetting to default decoder.')
+                print('Kwarg decoder without encoder has no effect.' \
+                        'Resetting to default decoder.')
                 kwargs.pop('decoder')
         elif 'decoder' not in kwargs:
-            print('Kwarg encoder without decoder has no effect. Resetting to default encoder.')
+            print('Kwarg encoder without decoder has no effect.' \ 
+                    'Resetting to default encoder.')
             kwargs.pop('encoder')
             if 'autoencoder' in kwargs:
-                print('Kwarg autoencoder without decoder has no effect. Resetting to default autoencoder.')
+                print('Kwarg autoencoder without decoder has no effect.' \ 
+                        'Resetting to default autoencoder.')
                 kwarsg.pop('autoencoder')
         else:  # both encoder and decoder are present
             en, de = kwargs['encoder'], kwargs['decoder']
@@ -390,7 +415,8 @@ class AutoEncoderEmulator:
                 print('Creating Autoencoder from Encoder and Decoder')
                 kwargs['autoencoder'] = ae
             else:
-                assert ae == kwargs['autoencoder'], 'The Autoencoder does not match the Encoder and Decoder!'
+                assert ae == kwargs['autoencoder'], \ 
+                'The Autoencoder does not match the Encoder and Decoder!'
         
         # initialize training set, validation set, and test set variables
         with h5py.File(SCRIPT_PATH + 'dataset_21cmVAE.h5', 'r') as hf:
@@ -401,25 +427,49 @@ class AutoEncoderEmulator:
             self.par_val = hf['par_val'][:]
             self.par_test = hf['par_test'][:]
 
-        self.par_labels = ['fstar', 'Vc', 'fx', 'tau', 'alpha', 'nu_min', 'Rmfp']
+        self.par_labels = [
+                'fstar',
+                'Vc',
+                'fx',
+                'tau',
+                'alpha',
+                'nu_min',
+                'Rmfp'
+                ]
         
         # the default models are the pretrained ones
         model_path = SCRIPT_PATH + 'models/autoencoder_based_emulator/'
-        self.autoencoder = kwargs.pop('autoencoder', tf.keras.models.load_model(
-            model_path+'autoencoder.h5', custom_objects={'loss_function': em_loss_fcn(self.signal_train)}))
-        self.encoder = kwargs.pop('encoder', tf.keras.models.load_model(model_path+'encoder.h5'))
-        self.decoder = kwargs.pop('decoder', tf.keras.models.load_model(model_path+'decoder.h5'))
-        self.emulator = kwargs.pop('emulator', tf.keras.models.load_model(model_path+'ae_emulator.h5'))
+        self.autoencoder = kwargs.pop(
+                'autoencoder',
+                tf.keras.models.load_model(
+                    model_path+'autoencoder.h5',
+                    custom_objects={
+                        'loss_function': em_loss_fcn(self.signal_train)
+                        }
+                    )
+                )
+        self.encoder = kwargs.pop(
+                'encoder',
+                tf.keras.models.load_model(model_path+'encoder.h5')
+                )
+        self.decoder = kwargs.pop(
+                'decoder',
+                tf.keras.models.load_model(model_path+'decoder.h5')
+                )
+        self.emulator = kwargs.pop(
+                'emulator',
+                tf.keras.models.load_model(model_path+'ae_emulator.h5')
+                )
 
         # initialize standard hyperparameters (used for the pretrained model)
         self.latent_dim = 9
         self.encoder_dims = [352]
         self.decoder_dims = [32, 352]
         self.em_dims = [352, 352, 352, 224]
-        self.activation_func = 'relu'  # activation function in all hidden layers
+        self.activation_func = 'relu'  # activation function in hidden layers
 
         # initialize parameters for training
-        self.epochs = 350  # max number of epochs (can be less due to early stopping)
+        self.epochs = 350  # max number of epochs
         self.ae_lr = 0.01  # initial learning rate for VAE
         self.em_lr = 0.01  # initial learning rate for emulator
 
@@ -434,19 +484,20 @@ class AutoEncoderEmulator:
         self.ae_lr_min_delta = 5e-9
         self.em_lr_min_delta = 5e-3
         # for early stopping
-        self.es_patience = 15  # number of epochs to wait before stopping training
+        self.es_patience = 15  # number of epochs to wait before early stopping
         # if the loss doesn't decrease by more than this, training is stopped:
         self.ae_earlystop_delta = 5e-10
         self.em_earlystop_delta = 5e-5
 
-        # initialize lists with losses, these get updated when models are trained
+        # initialize lists with losses, these get updated during training
         self.ae_train_losses = []  # training set losses for VAE
         self.ae_val_losses = []  # validation set losses for VAE
         self.em_train_losses = []  # training set losses for emulator
         self.em_val_losses = []  # validation set losses for emulator
 
-        # sampling redshifts: it is possible to train with signals that are not sampled with the same resolution
-        # or across the same redshift/frequency range. IN that case, these properties should be updated.
+        # sampling redshifts: it is possible to train with signals that are not
+        # sampled with the same resolution or across the same redshift/frequency
+        # range. IN that case, these properties should be updated.
         self.z_sampling = np.arange(5, 50+0.1, 0.1)  # redshifts
 
         def z_to_nu(redshift):
@@ -462,34 +513,42 @@ class AutoEncoderEmulator:
         Set the hyperparameters of the model.
         Possible **kwargs are:
         latent_dim: int, dimensionality of latent space
-        encoder_dims: list of ints, dimensions of each encoder layer, e.g. [96, 224, 288, 32]
+        encoder_dims: list of ints, dimensions of each encoder layer, e.g.
+        [96, 224, 288, 32]
         decoder_dims: list of ints, dimensions of each decoder layer, e.g [288]
-        em_dims: list of ints, dimensions of each emulator layer (not in the decoder), e.g [160, 224]
-        activation_function: str, name of a keras recognized activation function or a tf.keras.activations instance
-        (see https://keras.io/api/layers/activations/). Used in all hidden layers.
+        em_dims: list of ints, dimensions of each emulator layer (not in the
+        decoder), e.g [160, 224]
+        activation_function: str, name of a keras recognized activation function
+        or a tf.keras.activations instance (see 
+        https://keras.io/api/layers/activations/). Used in all hidden layers.
         :return: None
         """
         for key, values in kwargs.items():
             if key not in set(
-                    ['latent_dim', 'encoder_dims', 'decoder_dims', 'em_dims', 'activation_func']):
-                raise KeyError("Unexpected keyword argument in set_hyperparameters()")
+                    [
+                        'latent_dim',
+                        'encoder_dims',
+                        'decoder_dims',
+                        'em_dims',
+                        'activation_func'
+                        ]
+                    ):
+                raise KeyError(
+                        "Unexpected keyword argument in set_hyperparameters()"
+                        )
 
         self.latent_dim = kwargs.pop('latent_dim', self.latent_dim)
-        assert isinstance(self.latent_dim, (int, np.integer)), "Latent dimension must be int"
         self.encoder_dims = kwargs.pop('encoder_dims', self.encoder_dims)
         self.decoder_dims = kwargs.pop('decoder_dims', self.decoder_dims)
         self.em_dims = kwargs.pop('em_dims', self.em_dims)
-        assert isinstance(self.encoder_dims, (list, np.ndarray)), "Encoder layer dimensions must be list or np.ndarray"
-        assert all(isinstance(h, (int, np.integer)) for h in self.encoder_dims), "Encoder dimensions must be int"
-        assert isinstance(self.decoder_dims, (list, np.ndarray)), "Decoder layer dimensions must be list or np.ndarray"
-        assert all(isinstance(h, (int, np.integer)) for h in self.decoder_dims), "Decoder dimensions must be int"
-        assert isinstance(self.em_dims, (list, np.ndarray)), "Emulator layer dimensions must be list or np ndarray"
-        assert all(isinstance(h, (int, np.integer)) for h in self.emulator_dims), "Emulator dimensions must be int"
-        self.activation_func = kwargs.pop('activation_function', self.activation_func)
+        self.activation_func = kwargs.pop(
+                'activation_function',
+                self.activation_func
+                )
 
     def get_hyperparameters(self):
         """
-        Method that prints the current hyperparameters. Takes no input arguments.
+        Method that prints the current hyperparameters. Takes no input args.
         :return: None
         """
         print('Hyperparameters are set to:')
@@ -501,7 +560,9 @@ class AutoEncoderEmulator:
 
     def train(self, **kwargs):
         """
-        Builds and trains a VAE and emulator simultaneously. Possible kwargs are
+        Builds and trains a VAE and emulator simultaneously.
+        
+        Possible kwargs are
         signal_train: numpy array of training signals
         par_train: numpy array of training set parameters
         signal_val: numpy array of validation signals
@@ -509,30 +570,55 @@ class AutoEncoderEmulator:
         ae_lr: float, initial learning rate of autoencoder
         em_lr: float, initial learning rate of emulator
         epochs: int, number of epochs to train for
-        ae_lr_factor: float, factor * old LR (learning rate) is the new LR for the autoencoder (used for LR schedule)
-        ae_lr_patience: float, max number of epochs loss has not decreased for the autoencoder before reducing LR (used for
-        LR schedule)
+        ae_lr_factor: float, factor * old LR (learning rate) is the new LR for
+        the autoencoder (used for LR schedule)
+        ae_lr_patience: float, max number of epochs loss has not decreased for
+        the autoencoder before reducing LR (used for LR schedule)
         ae_min_lr: float, minimum allowed learning rate for autoencoder
-        ae_min_delta: float, min decrease in autoencoder validation loss in LR scheduler
+        ae_min_delta: float, min decrease in autoencoder validation loss in LR
+        scheduler
         ae_earlystop_delta: same as min delta but for the early stop callback
-        em_lr_factor: float, factor * old LR (learning rate) is the new LR for the emulator (used for LR schedule)
-        em_lr_patience: float, max number of epochs loss has not decreased for the emulator before reducing LR
-        (used for LR schedule)
+        em_lr_factor: float, factor * old LR (learning rate) is the new LR for
+        the emulator (used for LR schedule)
+        em_lr_patience: float, max number of epochs loss has not decreased for
+        the emulator before reducing LR (used for LR schedule)
         em_min_lr: float, minimum allowed learning rate for emulator
-        em_min_delta: float, min decrease in emulator validation loss in LR scheduler
+        em_min_delta: float, min decrease in emulator validation loss in LR
+        scheduler
         em_earlystop_delta: same as min delta but for the early stop callback
-        es_patience: float, max number of epochs loss has not decreased before early stopping
+        es_patience: float, max number of epochs loss has not decreased before
+        early stopping
         
-        Note: For more information about the LR schedule and Early stopping callbacks, please see:
-        https://keras.io/api/callbacks/reduce_lr_on_plateau/ and https://keras.io/api/callbacks/early_stopping/
+        Note: For more information about the LR schedule and Early stopping
+        callbacks, please see:
+        https://keras.io/api/callbacks/reduce_lr_on_plateau/
+        https://keras.io/api/callbacks/early_stopping/
         
         :return: None
         """
         for key, values in kwargs.items():
             if key not in set(
-                    ['signal_train', 'par_train', 'signal_val', 'par_val', 'ae_lr', 'em_lr', 'epochs', 'ae_lr_factor', 'ae_lr_patience',
-                     'ae_min_lr', 'ae_min_delta', 'ae_earlystop_delta', 'em_lr_factor', 'em_lr_patience', 'em_min_lr', 'em_min_delta',
-                     'es_patience', 'em_earlystop_delta']):
+                    [
+                        'signal_train',
+                        'par_train',
+                        'signal_val',
+                        'par_val',
+                        'ae_lr',
+                        'em_lr',
+                        'epochs',
+                        'ae_lr_factor',
+                        'ae_lr_patience',
+                        'ae_min_lr',
+                        'ae_min_delta',
+                        'ae_earlystop_delta',
+                        'em_lr_factor',
+                        'em_lr_patience',
+                        'em_min_lr',
+                        'em_min_delta',
+                        'es_patience',
+                        'em_earlystop_delta'
+                        ]
+                    ):
                 raise KeyError("Unexpected keyword argument in train()")
 
         # update the properties
@@ -544,7 +630,10 @@ class AutoEncoderEmulator:
         self.em_lr = kwargs.pop('em_lr', self.em_lr)
         self.epochs = kwargs.pop('epochs', self.epochs)
         self.ae_lr_min_delta = kwargs.pop('ae_min_delta', self.ae_lr_min_delta)
-        self.ae_earlystop_delta = kwargs.pop('ae_earlystop_delta', self.ae_earlystop_delta)
+        self.ae_earlystop_delta = kwargs.pop(
+                'ae_earlystop_delta',
+                self.ae_earlystop_delta
+                )
         self.ae_lr_factor = kwargs.pop('ae_lr_factor', self.ae_lr_factor)
         self.ae_lr_patience = kwargs.pop('ae_lr_patience', self.ae_lr_patience)
         self.ae_min_lr = kwargs.pop('ae_min_lr', self.ae_min_lr)
@@ -552,52 +641,50 @@ class AutoEncoderEmulator:
         self.em_lr_patience = kwargs.pop('em_lr_patience', self.em_lr_patience)
         self.em_min_lr = kwargs.pop('em_min_lr', self.em_min_lr)
         self.em_lr_min_delta = kwargs.pop('em_min_delta', self.em_lr_min_delta)
-        self.em_earlystop_delta = kwargs.pop('em_earlystop_delta', self.em_earlystop_delta)
+        self.em_earlystop_delta = kwargs.pop(
+                'em_earlystop_delta',
+                self.em_earlystop_delta
+                )
         self.es_patience = kwargs.pop('es_patience', self.es_patience)
 
         # check that properties are set consistently
-        assert np.shape(self.signal_train)[-1] == np.shape(self.signal_val)[-1], \
-            "Global signals in training and validation set must be sampled at equally many redshifts"
+        assert np.shape(self.signal_train)[-1] 
+        == np.shape(self.signal_val)[-1], \
+                "Global signals in training and validation set must be" \ 
+                "sampled at equally many redshifts"
         assert np.shape(self.par_train)[-1] == np.shape(self.par_val)[-1], \
-            "Training and validation set must have equally many astrophysical parameters"
+            "Training and validation set must have equally many" \ 
+            "astrophysical parameters"
         if len(np.shape(self.signal_train) > 1):
-            assert np.shape(self.signal_train)[0] == np.shape(self.par_train)[0], \
-                "The number of global signals doesn't match the number of parameter combinations in the training set"
+            assert np.shape(self.signal_train)[0] 
+            == np.shape(self.par_train)[0], \ 
+            "The number of global signals doesn't match the number of" \ 
+            "parameter combinations in the training set"
         if len(np.shape(self.signal_val) > 1):
             assert np.shape(self.signal_val)[0] == np.shape(self.par_val)[0], \
-                "The number of global signals doesn't match the number of parameter combinations in the validation set"
-        assert isinstance(self.ae_lr, (float, np.floating, int, np.integer)),\
-            "Autoencoder learning rate must be float or int"
-        assert isinstance(self.em_lr, (float, np.floating, int, np.integer)),\
-            "Emulator learning rate must be float or int"
-        assert isinstance(self.epochs, (int, np.integer)), "Epochs must be int"
-        assert isinstance(self.ae_lr_min_delta, (float, np.floating, int, np.integer)), \
-            "Autoencoder LR min delta must be float or int"
-        assert isinstance(self.em_lr_min_delta, (float, np.floating, int, np.integer)),\
-            "Emulator LR min delta must be float or int"
-        assert isinstance(self.ae_earlystop_delta, (float, np.floating, int, np.integer)),\
-            "Autoencoder ES min delta must be float or int"
-        assert isinstance(self.em_earlystop_delta, (float, np.floating, int, np.integer)),\
-            "Emulator ES min delta must be float or int"
-        assert isinstance(self.ae_lr_factor, (float, np.floating, int, np.integer)),\
-            "Autoencoder LR factor must be float or int"
-        assert isinstance(self.em_lr_factor, (float, np.floating, int, np.integer)),\
-            "Emulator LR factor must be float or int"
-        assert isinstance(self.ae_min_lr, (float, np.floating, int, np.integer)),\
-            "Autoenocder min LR must be float or int"
-        assert self.ae_min_lr <= self.ae_lr, "Autoencoder min LR must be <= initial LR"
-        assert isinstance(self.em_min_lr, (float, np.floating, int, np.integer)), "Emulator min LR must be float or int"
-        assert self.em_min_lr <= self.em_lr, "Emulator min LR must be <= initial LR"
-        assert isinstance(self.ae_lr_patience, (int, np.integer)), "Autoencoder LR patience must be int"
-        assert isinstance(self.em_lr_patience, (int, np.integer)), "Emulator LR patience must be int"
-        assert isinstance(self.es_patience, (int, np.integer)), "ES patience must be int"
+                "The number of global signals doesn't match the number of" \ 
+                "parameter combinations in the validation set"
+        assert self.em_min_lr <= self.em_lr, \ 
+        "Emulator min LR must be <= initial LR"
 
         # hyperparameters
-        layer_hps = [self.encoder_dims, self.latent_dim, self.decoder_dims, self.em_dims]
+        layer_hps = [
+                self.encoder_dims,
+                self.latent_dim,
+                self.decoder_dims,
+                self.em_dims
+                ]
 
         # build autoencoder and emulator
-        autoencoder, encoder, decoder = bm.build_autoencoder(layer_hps,self.signal_train, self.activation_func)
-        emulator = bm.build_ae_emulator(layer_hps, self.par_train, self.activation_func)
+        autoencoder, encoder, decoder = bm.build_autoencoder(
+                layer_hps,self.signal_train,
+                self.activation_func
+                )
+        emulator = bm.build_ae_emulator(
+                layer_hps,
+                self.par_train,
+                self.activation_func
+                )
 
         # update the default models
         self.autoencoder = autoencoder
@@ -605,12 +692,30 @@ class AutoEncoderEmulator:
         self.decoder = decoder
         self.emulator = emulator
 
-        losses = train_ae_emulator(self.autoencoder, self.encoder, self.emulator, self.signal_train, self.signal_val,
-                                   self.par_train, self.par_val, self.epochs, self.ae_lr, self.em_lr, self.ae_lr_factor,
-                                   self.ae_lr_patience, self.ae_lr_min_delta, self.ae_min_lr, self.ae_earlystop_delta,
-                                   self.es_patience, self.em_lr_factor, self.em_lr_patience, self.em_lr_min_delta,
-                                   self.em_min_lr, self.em_earlystop_delta, self.es_patience)
-        assert len(losses) == 4, "Training should return a list with 4 elements but it doesn't; something's wrong"
+        losses = train_ae_emulator(
+                self.autoencoder,
+                self.encoder,
+                self.emulator,
+                self.signal_train,
+                self.signal_val,
+                self.par_train,
+                self.par_val,
+                self.epochs,
+                self.ae_lr,
+                self.em_lr,
+                self.ae_lr_factor,
+                self.ae_lr_patience,
+                self.ae_lr_min_delta,
+                self.ae_min_lr,
+                self.ae_earlystop_delta,
+                self.es_patience,
+                self.em_lr_factor,
+                self.em_lr_patience,
+                self.em_lr_min_delta,
+                self.em_min_lr,
+                self.em_earlystop_delta,
+                self.es_patience
+                )
         self.ae_train_losses = losses[0]
         self.ae_val_losses = losses[1]
         self.em_train_losses = losses[2]
@@ -618,23 +723,35 @@ class AutoEncoderEmulator:
 
     def predict(self, use_autoencoder=False, params=None, signals=None):
         """
-        Predict global signals from input parameters. The training parameters and training signals matters
-        for inverting the preprocessing of signals so these parameters must correspond to the training set the emulator
-        was trained on. These parameters are set correctly if a model is trained with the train() function or
-        the default model is used. Otherwise, the properties must be updated manually with 21cmVAE.par_train = ...
+        Predict global signals from input parameters. The training parameters
+        and training signals matters for inverting the preprocessing of signals
+        so these parameters must correspond to the training set the emulator
+        was trained on. These parameters are set correctly if a model is trained
+        with the train() function or the default model is used. Otherwise, the
+        properties must be updated manually with 21cmVAE.par_train = ...
         and 21cmVAE.signal_train = ...
-        :param params: Array of shape (N, 7) where N = number of signals to predict and the columns are the values
-        of the parameters. The parameters must be in the order [fstar, Vc, fx, tau, alpha, nu_min, Rmfp]. This kwarg is necessary to
-        predict global signals with the emulator.
-        :param use_autoencoder: bool, whether to predict signals with emulator or autoencoder. Defaults to False.
-        :param signals: Array of shape (N, 451) where each row is a global signal that the autoencoder will attempt to reconstruct.
-        Necessary if use_autoencoder=True.
+        
+        :param params: Array of shape (N, 7) where N = number of signals to
+        predict and the columns are the values of the parameters. The parameters
+        must be in the order [fstar, Vc, fx, tau, alpha, nu_min, Rmfp].
+        This kwarg is necessary to predict global signals with the emulator.
+        :param use_autoencoder: bool, whether to predict signals with emulator
+        or autoencoder. Defaults to False.
+        :param signals: Array of shape (N, 451) where each row is a global
+        signal that the autoencoder will attempt to reconstruct. Necessary if
+        use_autoencoder=True.
         :return: Array with shape (N, 451) where each row is a global signal
         """
         if use_autoencoder and signals is None:
-            raise KeyError("Cannot compute autoencoder predicted signals without input global signals.")
+            raise KeyError(
+                    "Cannot compute autoencoder predicted signals without" \
+                            "input global signals."
+                    )
         elif not use_autoencoder and params is None:
-            raise KeyError("Cannot predict global signals with emulator without input parameters.")
+            raise KeyError(
+                    "Cannot predict global signals with emulator without" \
+                            "input parameters."
+                            )
         
         training_params = self.par_train
         training_signals = self.signal_train
@@ -642,15 +759,15 @@ class AutoEncoderEmulator:
         if not use_autoencoder:  # using emulator
             model = self.emulator
             decoder = self.decoder
-            transformed_params = pp.par_transform(params, training_params)  # transform the input parameters
-            preprocessed_signal = model.predict(transformed_params)  # predict signal with emulator
-            output = decoder.predict(preprocessed_signal)  # decode predicted signal
+            transformed_params = pp.par_transform(params, training_params)
+            preprocessed_signal = model.predict(transformed_params)
+            output = decoder.predict(preprocessed_signal)
         else:  # using autoencoder
             model = self.autoencoder
             pp_signal = pp.preproc(signals, training_signals)  # input signals
             output = model.predict(pp_signal)  # attempted reconstruction
             
-        predicted_signal = pp.unpreproc(output, training_signals)  # unpreprocess the signal
+        predicted_signal = pp.unpreproc(output, training_signals)
         if predicted_signal.shape[0] == 1:
             return predicted_signal[0, :]
         else:
@@ -658,25 +775,40 @@ class AutoEncoderEmulator:
 
     def compute_rms_error(self, **kwargs):
         """
-        Computes the rms error as given in the paper, either a relative error or an absolute error in mK. If absolute
-        error, then different frequency bands can be chosen.
+        Computes the rms error as given in the paper, either a relative error o
+        an absolute error in mK. Different frequency bands can be chosen.
+
         Possible kwargs
-        :param use_autoencoder: bool, whether to compute errors of autoencoder or emulator. Defaults to False.
-        :param test_params: array, with shape (N, 7) of parameters to test on where N is the number of different
-        parameters to try at once (for  a vectorised call)
-        :param test_signals: array with shape (N, 451) [451 is flexible, depends on what signals the model is trained on]
-        of global signals corresponding to the test parameters
-        :param relative: boolean, whether the error computed should be relative or absolute
-        :param flow: float or None, lower bound for range of frequencies over which the rms error is computed. If None,
-        there's no lower bound.
-        :param fhigh: float or None, upper bound for range of frequencies over which the rms error is computed. If None,
-        there's no upper bound.
+        :param use_autoencoder: bool, whether to compute errors of autoencoder
+        or emulator. Defaults to False.
+        :param test_params: array, with shape (N, 7) of parameters to test on
+        where N is the number of different parameters to try at once 
+        (for  a vectorised call)
+        :param test_signals: array with shape (N, 451) [451 is flexible,
+        depends on what signals the model is trained on] of global signals
+        corresponding to the test parameters
+        :param relative: boolean, whether the error computed should be relative
+        or absolute
+        :param flow: float or None, lower bound for range of frequencies over
+        which the rms error is computed. If None, there's no lower bound.
+        :param fhigh: float or None, upper bound for range of frequencies over
+        which the rms error is computed. If None, there's no upper bound.
         :return: array of shape (N, ), each row is the error for that signal
         """
         for key, values in kwargs.items():
             if key not in set(
-                    ['use_autoencoder', 'test_params', 'test_signals', 'relative', 'flow', 'fhigh']):
-                raise KeyError("Unexpected keyword argument in compute_rms_error()")
+                    [
+                        'use_autoencoder',
+                        'test_params',
+                        'test_signals',
+                        'relative',
+                        'flow',
+                        'fhigh'
+                        ]
+                    ):
+                raise KeyError(
+                        "Unexpected keyword argument in compute_rms_error()"
+                        )
 
         use_autoencoder = kwargs.pop('use_autoencoder', False)
         test_params = kwargs.pop('test_params', self.par_test)
@@ -688,12 +820,11 @@ class AutoEncoderEmulator:
         flow = kwargs.pop('flow', None)
         fhigh = kwargs.pop('fhigh', None)
 
-        if flow is not None or fhigh is not None:
-            if relative:
-                print("One or two frequency bounds are specified, but 'relative' is set to True so the relative"
-                      " error will be computed and the frequency bounds ignored. Did you mean to set relative=False?")
-
-        predicted_signal_input = self.predict(use_autoencoder=use_autoencoder, params=test_params, signals=test_signals)
+        predicted_signal_input = self.predict(
+                use_autoencoder=use_autoencoder,
+                params=test_params,
+                signals=test_signals
+                )
         true_signal_input = test_signals
         assert predicted_signal_input.shape == true_signal_input.shape
         if len(predicted_signal_input.shape) == 1:
@@ -702,24 +833,26 @@ class AutoEncoderEmulator:
         else:
             predicted_signal = predicted_signal_input.copy()
             true_signal = true_signal_input.copy()
-        if not relative:
-            nu_arr = self.nu_sampling
-            assert nu_arr.shape[0] == predicted_signal.shape[1], "double check 21cmVAE.nu_sampling, it " \
-                                                                 "does not seem to match the shape of the" \
-                                                                 "predicted signal"
-            if flow and fhigh:
-                f = np.argwhere((nu_arr >= flow) & (nu_arr <= fhigh))[:, 0]
-                predicted_signal = predicted_signal[:, f]
-                true_signal = true_signal[:, f]
-            elif flow:
-                f1 = np.argwhere(nu_arr >= flow)
-                predicted_signal = predicted_signal[:, f1]
-                true_signal = true_signal[:, f1]
-            elif fhigh:
-                f2 = np.argwhere(nu_arr <= fhigh)
-                predicted_signal = predicted_signal[:, f2]
-                true_signal = true_signal[:, f2]
+        
+        nu_arr = self.nu_sampling
+        assert nu_arr.shape[0] == predicted_signal.shape[1], \
+                "double check 21cmVAE.nu_sampling, it does not seem to match" \
+                "the shape of the predicted signal"
+
+        if flow and fhigh:
+            f = np.argwhere((nu_arr >= flow) & (nu_arr <= fhigh))[:, 0]
+            predicted_signal = predicted_signal[:, f]
+            true_signal = true_signal[:, f]
+        elif flow:
+            f1 = np.argwhere(nu_arr >= flow)
+            predicted_signal = predicted_signal[:, f1]
+            true_signal = true_signal[:, f1]
+        elif fhigh:
+            f2 = np.argwhere(nu_arr <= fhigh)
+            predicted_signal = predicted_signal[:, f2]
+            true_signal = true_signal[:, f2]
         num = np.sqrt(np.mean((predicted_signal - true_signal) ** 2, axis=1))
+        
         if relative:  # give error as fraction of amplitude
             den = np.max(np.abs(true_signal), axis=1)
         else:  # give error in mK
