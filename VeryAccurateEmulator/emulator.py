@@ -65,8 +65,8 @@ class VeryAccurateEmulator:
         for key, values in kwargs.items():
             if key not in set(['emulator']):
                 raise KeyError(
-                'Unexpected keyword argument passed to class' \ 
-                'VeryAccurateEmulator'
+                'Unexpected keyword argument passed to class' \
+                        'VeryAccurateEmulator'
                 )
         
         # the default emulator is 21cmVAE:
@@ -415,8 +415,8 @@ class AutoEncoderEmulator:
                 print('Creating Autoencoder from Encoder and Decoder')
                 kwargs['autoencoder'] = ae
             else:
-                assert ae == kwargs['autoencoder'], \ 
-                'The Autoencoder does not match the Encoder and Decoder!'
+                assert ae == kwargs['autoencoder'], \
+                        'The Autoencoder does not match Encoder and Decoder!'
         
         # initialize training set, validation set, and test set variables
         with h5py.File(SCRIPT_PATH + 'dataset_21cmVAE.h5', 'r') as hf:
@@ -657,15 +657,15 @@ class AutoEncoderEmulator:
             "astrophysical parameters"
         if len(np.shape(self.signal_train) > 1):
             assert np.shape(self.signal_train)[0] 
-            == np.shape(self.par_train)[0], \ 
-            "The number of global signals doesn't match the number of" \ 
-            "parameter combinations in the training set"
+            == np.shape(self.par_train)[0], \
+                    "The number of global signals doesn't match the number of"\
+                    "parameter combinations in the training set"
         if len(np.shape(self.signal_val) > 1):
             assert np.shape(self.signal_val)[0] == np.shape(self.par_val)[0], \
                 "The number of global signals doesn't match the number of" \ 
                 "parameter combinations in the validation set"
-        assert self.em_min_lr <= self.em_lr, \ 
-        "Emulator min LR must be <= initial LR"
+        assert self.em_min_lr <= self.em_lr, \
+                "Emulator min LR must be <= initial LR"
 
         # hyperparameters
         layer_hps = [
