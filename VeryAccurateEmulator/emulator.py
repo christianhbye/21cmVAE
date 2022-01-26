@@ -197,12 +197,12 @@ class VeryAccurateEmulator:
         assert np.shape(self.par_train)[-1] == np.shape(self.par_val)[-1], \
             "Training and validation set must have equally many" \
             "astrophysical parameters"
-        if len(np.shape(self.signal_train) > 1):
+        if len(np.shape(self.signal_train)) > 1:
             assert np.shape(self.signal_train)[0] \
                     == np.shape(self.par_train)[0], \
                     "The number of global signals doesn't match the number" \
                     "of parameter combinations in the training set"
-        if len(np.shape(self.signal_val) > 1):
+        if len(np.shape(self.signal_val)) > 1:
             assert np.shape(self.signal_val)[0] == np.shape(self.par_val)[0], \
                     "The number of global signals doesn't match the number of" \
                     "parameter combinations in the validation set"
