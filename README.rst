@@ -23,16 +23,20 @@ Optional: matplotlib, jupyter (both required for the sample notebooks).
 
 
 
-We recommend installing 21cmVAE in a `conda environment <https://docs.conda.io/projects/conda/en/latest/user-guide/concepts/environments.html>`_. To set up one with all the required dependencies for 21cmVAE, do:
+First, clone the repository and download the dataset from http://doi.org/10.5281/zenodo.5084114. Then move the file to the VeryAccurateEmulator. This is necessary for all uses of the emulator, as the dataset is used in the prediction alogrithm. For example:
 
 .. code:: bash
 
    git clone https://github.com/christianhbye/21cmVAE.git
+   mv ~/Downloads/dataset_21cmVAE.h5 21cmVAE/VeryAccurateEmulator 
+
+We recommend installing 21cmVAE in a `conda environment <https://docs.conda.io/projects/conda/en/latest/user-guide/concepts/environments.html>`_. To set up one with all the required dependencies for 21cmVAE, do:
+
+.. code:: bash
+
    cd 21cmVAE
    conda create env --prefix emulator_env -f environment.yml
    python -m pip install .
-
-After installing 21cmVAE, download the dataset used from http://doi.org/10.5281/zenodo.5084114, and move the file to the VeryAccurateEmulator folder. This is necessary for all uses of the emulator, as the dataset is used in the prediction alogrithm.
 
 Contributions
 #############
