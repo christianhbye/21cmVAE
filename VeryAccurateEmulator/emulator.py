@@ -190,22 +190,22 @@ class VeryAccurateEmulator:
         self.es_min_delta = kwargs.pop('es_min_delta', self.es_min_delta)
 
         # check that properties are set consistently
-        assert np.shape(self.signal_train)[-1]
-        == np.shape(self.signal_val)[-1], \
+        assert np.shape(self.signal_train)[-1] \
+                == np.shape(self.signal_val)[-1], \
                 "Global signals in training and validation set must be" \
                 "sampled at equally many redshifts"
         assert np.shape(self.par_train)[-1] == np.shape(self.par_val)[-1], \
             "Training and validation set must have equally many" \
             "astrophysical parameters"
         if len(np.shape(self.signal_train) > 1):
-            assert np.shape(self.signal_train)[0]
-            == np.shape(self.par_train)[0], \
+            assert np.shape(self.signal_train)[0] \
+                    == np.shape(self.par_train)[0], \
                     "The number of global signals doesn't match the number" \
                     "of parameter combinations in the training set"
         if len(np.shape(self.signal_val) > 1):
             assert np.shape(self.signal_val)[0] == np.shape(self.par_val)[0], \
-                "The number of global signals doesn't match the number of" \ 
-                "parameter combinations in the validation set"
+                    "The number of global signals doesn't match the number of" \
+                    "parameter combinations in the validation set"
         assert self.min_lr <= self.learning_rate, "Min LR must be <= initial LR"
 
         # build direct emulator
@@ -401,11 +401,11 @@ class AutoEncoderEmulator:
                         'Resetting to default decoder.')
                 kwargs.pop('decoder')
         elif 'decoder' not in kwargs:
-            print('Kwarg encoder without decoder has no effect.' \ 
+            print('Kwarg encoder without decoder has no effect.' \
                     'Resetting to default encoder.')
             kwargs.pop('encoder')
             if 'autoencoder' in kwargs:
-                print('Kwarg autoencoder without decoder has no effect.' \ 
+                print('Kwarg autoencoder without decoder has no effect.' \
                         'Resetting to default autoencoder.')
                 kwarsg.pop('autoencoder')
         else:  # both encoder and decoder are present
@@ -648,22 +648,22 @@ class AutoEncoderEmulator:
         self.es_patience = kwargs.pop('es_patience', self.es_patience)
 
         # check that properties are set consistently
-        assert np.shape(self.signal_train)[-1] 
-        == np.shape(self.signal_val)[-1], \
-                "Global signals in training and validation set must be" \ 
+        assert np.shape(self.signal_train)[-1] \
+                == np.shape(self.signal_val)[-1], \
+                "Global signals in training and validation set must be" \
                 "sampled at equally many redshifts"
         assert np.shape(self.par_train)[-1] == np.shape(self.par_val)[-1], \
-            "Training and validation set must have equally many" \ 
-            "astrophysical parameters"
+                "Training and validation set must have equally many" \
+                "astrophysical parameters"
         if len(np.shape(self.signal_train) > 1):
-            assert np.shape(self.signal_train)[0] 
-            == np.shape(self.par_train)[0], \
-                    "The number of global signals doesn't match the number of"\
+            assert np.shape(self.signal_train)[0] \
+                    == np.shape(self.par_train)[0], \
+                    "The number of global signals doesn't match the number of" \
                     "parameter combinations in the training set"
         if len(np.shape(self.signal_val) > 1):
             assert np.shape(self.signal_val)[0] == np.shape(self.par_val)[0], \
-                "The number of global signals doesn't match the number of" \ 
-                "parameter combinations in the validation set"
+                    "The number of global signals doesn't match the number of" \
+                    "parameter combinations in the validation set"
         assert self.em_min_lr <= self.em_lr, \
                 "Emulator min LR must be <= initial LR"
 
