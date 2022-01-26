@@ -7,4 +7,3 @@ build/
 dist/
 VeryAccurateEmulator.egg-info/
 tests/
-notebooks/train_many_ae.ipynb
