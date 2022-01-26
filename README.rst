@@ -6,60 +6,33 @@
 Very Accurate Emulator
 **********************
 
-Very Accurate Emulator (21cmVAE) is an emulator of the 21-cm global signal. Given an input of seven astrophyscial parameters, it directly computes realizations of the global signal across redshifts 5-50. The emulator is described in detail in `Bye et. al, 2021 <https://arxiv.org/abs/2107.05581>`__.
+Very Accurate Emulator (21cmVAE) is an emulator of the 21-cm global signal. Given an input of seven astrophyscial parameters, it directly computes realizations of the global signal across redshifts 5-50. The emulator is described in detail in `Bye et. al, 2022 <https://arxiv.org/abs/2107.05581>`__.
 
 21cmVAE emulates global signals with an average error of 0.34% of the signal amplitude (equivalently 0.54 mK) with a run time of 40 ms on average. It is trained on ~30,000 cases, the same training set as the other exisiting emulators `21cmGEM <https://ui.adsabs.harvard.edu/abs/2020MNRAS.495.4845C/abstract>`_ and `globalemu <https://ui.adsabs.harvard.edu/abs/2021MNRAS.508.2923B/abstract>`_. The accuracy and speed makes 21cmVAE a possible tool for parameter fitting, using samplig techinques like MCMC. Moreover, the variational autoencoder approach creates an interpretable latent space that allows us to determine the relative importance of the model parameters on the global 21-cm signal. 
 
 21cmVAE is free to use on the MIT open source license. We provide here our best pretrained model, as well as code to modify and train new models. We also provide the code used for the hyperparameter tuner and code to run and train the direct emulator. We refer to the sample notebooks for an introduction on how to run and test the pretrained model, as well as how to train new models. 
 
-Questions and comments are welcome; please e-mail me at chbye@berkeley.edu. If you use this work for academic purposes, please cite `Bye et. al, 2021 <https://arxiv.org/abs/2107.05581>`__ and link to this repository.
+Questions and comments are welcome; please e-mail me at chbye@berkeley.edu. If you use this work for academic purposes, please cite `Bye et. al, 2022 <https://arxiv.org/abs/2107.05581>`__ and link to this repository.
 
 Set-up
 ######
 
 Dependencies: Python>=3.6, Tensorflow>=2.5, h5py, numpy.
 
-Optional: matplotlib, jupyter, ipykernel (all required for the sample notebooks), pytest (for testing).
-
-We recommend installing 21cmVAE in a `virtual environment <https://docs.python.org/3/tutorial/venv.html>`_. To set up a virtual environment on Unix or MacOS:
-
-.. code:: bash
-
-   python -m venv .emulator_env
-   source .emulator_env/bin/activate
+Optional: matplotlib, jupyter, ipykernel (all required for the sample notebooks).
 
 
-The Windows equivalent is:
+
+We recommend installing 21cmVAE in a `conda environment <https://docs.conda.io/projects/conda/en/latest/user-guide/concepts/environments.html>`_. To set up one with all the required dependencies for 21cmVAE, do:
 
 .. code:: bash
 
-   python -m venv .emulator_env
-   .emulator_env\Scripts\activate.bat
-
-
-Then clone the repository and install with pip:
-
-.. code:: bash
-   
    git clone https://github.com/christianhbye/21cmVAE.git
    cd 21cmVAE
+   conda create env --prefix emulator_env -f environment.yml
    python -m pip install .
 
-To install the optional interactive packages (matplotlib, jupyter, and ipykernel) as well, you should instead do:
-
-.. code:: bash
-
-   python -m pip install .[interactive]
-
-To automatically install pytest, replace [interactive] with [tests]. All optional packages (interactive + tests) may be installed with [all].
-
-If you wish to run the package in a Jupyter Notebook, we suggest adding the virtual environment to the ipykernel:
-
-.. code:: bash
-    
-    python -m ipykernel install --user --name .emulator_env
-
-Finally, download the dataset used from http://doi.org/10.5281/zenodo.5084114, and move the file to the VeryAccurateEmulator folder. This is necessary for all uses of the emulator, as the dataset is used in the prediction alogrithm.
+After installing 21cmVAE, download the dataset used from http://doi.org/10.5281/zenodo.5084114, and move the file to the VeryAccurateEmulator folder. This is necessary for all uses of the emulator, as the dataset is used in the prediction alogrithm.
 
 Contributions
 #############
