@@ -59,9 +59,6 @@ def build_autoencoder(layer_hps, signal_train, activation_func='relu'):
     assert len(layer_hps) == 4, \
             "Layer hps should have one element for each of encoder, decoder," \
             "emulator, latent dim"
-    if len(np.shape(signal_train)) > 1:
-        assert np.shape(signal_train)[0] == np.shape(par_train)[0], \
-                "Training set needs equally many signals and params"
     encoding_hidden_dims = layer_hps[0]  # the layers of the encoder
     ae_input = Input(shape=(signal_train.shape[1],))  # autoencoder input layer
     
