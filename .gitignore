@@ -6,3 +6,4 @@ RESULTS
 build/
 dist/
 VeryAccurateEmulator.egg-info/
+tests/
