@@ -19,7 +19,7 @@ Set-up
 
 Dependencies: Python>=3.6, Tensorflow>=2.5, h5py, numpy.
 
-Optional: matplotlib, jupyter, ipykernel (all required for the sample notebooks).
+Optional: matplotlib, jupyter (both required for the sample notebooks).
 
 
 
