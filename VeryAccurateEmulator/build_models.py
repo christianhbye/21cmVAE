@@ -1,10 +1,6 @@
 import numpy as np
-from tensorflow.keras import backend as K
-from tensorflow.keras.losses import mse
 from tensorflow.keras.layers import Input, Dense
 from tensorflow.keras.models import Model
-from tensorflow.keras import optimizers
-import tensorflow as tf
 
 
 def build_direct_emulator(
@@ -20,7 +16,7 @@ def build_direct_emulator(
     :param signal_train: numpy array of training signals
     :param par_train: numpy array of training parameters
     :param activation_func: str, name of a keras recognized activation function
-    or a tf.keras.activations instance (see 
+    or a tf.keras.activations instance (see
     https://keras.io/api/layers/activations/)
     :return: the emulator as a keras model object
     """
@@ -30,7 +26,7 @@ def build_direct_emulator(
     em_input_par = Input(shape=(par_train.shape[1],), name='em_input')
     em_hidden_dims = layer_hps
     # add hidden layers with the specified dimensions one by one:
-    for i, dim in enumerate(em_hidden_dims):  
+    for i, dim in enumerate(em_hidden_dims):
         if i == 0:
             input_layer = em_input_par
         else:
@@ -52,25 +48,25 @@ def build_autoencoder(layer_hps, signal_train, activation_func='relu'):
     and their dimensionalities
     :param signal_train: numpy array of training signals
     :param activation_func: str, name of a keras recognized activation function
-    or a tf.keras.activations instance (see 
+    or a tf.keras.activations instance (see
     https://keras.io/api/layers/activations/)
     :return: the autoencoder as a keras model object
     """
-    assert len(layer_hps) == 4, \
+    assert len(layer_hps) == 4,\
             "Layer hps should have one element for each of encoder, decoder," \
             "emulator, latent dim"
     encoding_hidden_dims = layer_hps[0]  # the layers of the encoder
     ae_input = Input(shape=(signal_train.shape[1],))  # autoencoder input layer
-    
+
     # loop over the number of layers and build the encoder with layers of the
     # given dimensions
     for i, dim in enumerate(encoding_hidden_dims):
         if i == 0:
             # the first layer takes input from the input layer
-            input_layer = ae_input 
+            input_layer = ae_input
         else:
             # subsequent layers take input from the previous layer
-            input_layer = x 
+            input_layer = x
         # using dense (fully connected) layers
         x = Dense(
                 dim,
@@ -111,10 +107,10 @@ def build_autoencoder(layer_hps, signal_train, activation_func='relu'):
     encoded_input = Input(shape=(latent_dim,))
     for i, layer in enumerate(decoder_layers):
         if i == 0:
-            input = encoded_input
+            layer_in = encoded_input
         else:
-            input = y
-        y = layer(input)
+            layer_in = y
+        y = layer(layer_in)
     decoder = Model(encoded_input, y, name='Decoder')
     return autoencoder, encoder, decoder
 
@@ -130,7 +126,7 @@ def build_ae_emulator(layer_hps, par_train, activation_func='relu'):
     (see https://keras.io/api/layers/activations/)
     :return: the emulator as a keras model object
     """
-    assert len(layer_hps) == 4, \
+    assert len(layer_hps) == 4,\
             "Layer hps should have one element for each of encoder, decoder," \
             "emulator, latent dim"
     em_input_par = Input(shape=(par_train.shape[1],), name='em_input')
