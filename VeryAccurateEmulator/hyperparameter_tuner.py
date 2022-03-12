@@ -405,7 +405,7 @@ class Direct_HP_Tuner(HyperParameterTuner):
         # Output variables
         y_train = pp.preproc(signal_train, signal_train)
         y_val = pp.preproc(signal_val, signal_train)
-        super.__init__(
+        super().__init__(
             X_train,
             X_val,
             y_train,
@@ -450,7 +450,7 @@ class AE_HP_Tuner(HyperParameterTuner):
         y_train = encoder.predict(pp.preproc(signal_train, signal_train))
         y_val = encoder.predict(pp.preproc(signal_val, signal_train))
         self.latent_dim = y_train.shape[-1]
-        super.__init__(
+        super().__init__(
             X_train,
             X_val,
             y_train,
