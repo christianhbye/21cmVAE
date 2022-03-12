@@ -673,7 +673,7 @@ class AutoEncoderEmulator:
 
         # build autoencoder and emulator
         autoencoder, encoder, decoder = bm.build_autoencoder(
-                ae_layer_hps
+                ae_layer_hps,
                 self.signal_train,
                 self.activation_func
                 )
