@@ -382,7 +382,17 @@ class HyperParameterTuner:
 
 class Direct_HP_Tuner(HyperParameterTuner):
 
-    def __init__(self):
+    def __init__(
+            self,
+            max_trials=500,
+            epochs=350,
+            min_hidden_layers=1,
+            h_layer_step=1,
+            max_step_h_layers=4,
+            min_hidden_dim=32,
+            hidden_dim_step=64,
+            max_step_hidden_dim=6
+        ):
         with h5py.File(script_path + 'dataset_21cmVAE.h5', 'r') as hf:
             signal_train = hf['signal_train'][:]
             signal_val = hf['signal_val'][:]
@@ -395,12 +405,37 @@ class Direct_HP_Tuner(HyperParameterTuner):
         # Output variables
         y_train = pp.preproc(signal_train, signal_train)
         y_val = pp.preproc(signal_val, signal_train)
-        super.__init__(X_train, X_val, y_train, y_val, em_type="direct")
+        super.__init__(
+            X_train,
+            X_val,
+            y_train,
+            y_val,
+            em_type="direct",
+            max_trials=max_trials,
+            epochs=epochs,
+            min_hidden_layers=min_hidden_layers,
+            h_layer_step=h_layer_step,
+            max_step_h_layers=max_step_h_layers,
+            min_hidden_dim=min_hidden_dim,
+            hidden_dim_step=hidden_dim_step,
+            max_step_hidden_dim=max_step_hidden_dim
+        )
 
 
 class AE_HP_Tuner(HyperParameterTuner):
 
-    def __init__(self, encoder_path):
+    def __init__(
+            self,
+            encoder_path,
+            max_trials=500,
+            epochs=350,
+            min_hidden_layers=1,
+            h_layer_step=1,
+            max_step_h_layers=4,
+            min_hidden_dim=8,
+            hidden_dim_step=16,
+            max_step_hidden_dim=5
+        ):
         with h5py.File(script_path + 'dataset_21cmVAE.h5', 'r') as hf:
             signal_train = hf['signal_train'][:]
             signal_val = hf['signal_val'][:]
@@ -415,4 +450,18 @@ class AE_HP_Tuner(HyperParameterTuner):
         y_train = encoder.predict(pp.preproc(signal_train, signal_train))
         y_val = encoder.predict(pp.preproc(signal_val, signal_train))
         self.latent_dim = y_train.shape[-1]
-        super.__init__(X_train, X_val, y_train, y_val, em_type="ae")
+        super.__init__(
+            X_train,
+            X_val,
+            y_train,
+            y_val,
+            em_type="ae",
+            max_trials=max_trials,
+            epochs=epochs,
+            min_hidden_layers=min_hidden_layers,
+            h_layer_step=h_layer_step,
+            max_step_h_layers=max_step_h_layers,
+            min_hidden_dim=min_hidden_dim,
+            hidden_dim_step=hidden_dim_step,
+            max_step_hidden_dim=max_step_hidden_dim
+        )
