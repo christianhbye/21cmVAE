@@ -8,8 +8,14 @@ from tensorflow.keras.models import Model
 from tensorflow.keras import backend as K
 
 import VeryAccurateEmulator.preprocess as pp
-from VeryAccurateEmulator.build_models import build_direct_emulator
-from VeryAccurateEmulator.training_tools import train_emulator
+from VeryAccurateEmulator.build_models import (
+        build_direct_emulator,
+        build_ae_emulator
+    )
+from VeryAccurateEmulator.training_tools import (
+        train_emulator,
+        train_ae_based_emulator
+        )
 from VeryAccurateEmulator import __path__
 
 def generate_hp(min_val, step_size, max_step):
@@ -111,6 +117,11 @@ def get_best_epoch_losses(losses):
 class HyperParameterTuner:
     def __init__(
             self,
+            X_train,
+            X_val,
+            y_train,
+            y_val,
+            em_type="direct",  # or "ae" for ae-based
             max_trials=500,
             epochs=350,
             min_hidden_layers=1,
@@ -120,6 +131,7 @@ class HyperParameterTuner:
             hidden_dim_step=64,
             max_step_hidden_dim=6
             ):
+        self.em_type = em_type
         self.max_trials = max_trials  # number of models to build
         self.epochs = epochs  # max epochs for training
 
@@ -154,13 +166,6 @@ class HyperParameterTuner:
                 self.signal_test,
                 self.signal_train
                 )
-
-        # Input variables
-        self.X_train = pp.par_transform(self.par_train, self.par_train)
-        self.X_val = pp.par_transform(self.par_val, self.par_train)
-        # Output variables
-        self.y_train = pp.preproc(self.signal_train, self.signal_train)
-        self.y_val = pp.preproc(self.signal_val, self.signal_train)
 
         # (fixed) hyperparameters that define the search range
         # max dim = min dim + max step * step size
@@ -221,32 +226,54 @@ class HyperParameterTuner:
         """
         five_best_val = np.empty((5,2))  # array of the best validation losses
         # for each trial, we train the emulator and VAE
+        no_hidden_layers = (
+            self.min_hidden_layers,
+            self.h_layer_step,
+            self.max_step_h_layers
+        )
+        hidden_dims = (
+            self.min_hidden_dim,
+            self.hidden_dim_step,
+            self.max_step_hidden_dim
+        )
         for i in range(self.max_trials): 
-            no_hidden_layers = (
-                    self.min_hidden_layers,
-                    self.h_layer_step,
-                    self.max_step_h_layers
-                    )
-            hidden_dims = (
-                    self.min_hidden_dim,
-                    self.hidden_dim_step,
-                    self.max_step_hidden_dim
-                    )
             # generate architecture
             layer_hps = generate_layer_hps(no_hidden_layers, hidden_dims)
             # build the NN
-            emulator = build_direct_emulator(
-                    layer_hps,
-                    self.signal_train,
-                    self.par_train
+            if self.em_type == "direct":
+                emulator = build_direct_emulator(
+                        layer_hps,
+                        self.signal_train,
+                        self.par_train,
+                        activation_func=self.activation_func
                     )
-            # train and get the losses
-            losses = train_emulator(
+                losses = train_emulator(
+                        emulator,
+                        self.signal_train,
+                        self.signal_val,
+                        self.par_train,
+                        self.par_val,
+                        self.epochs,
+                        self.em_lr,
+                        self.em_lr_factor,
+                        self.em_lr_patience,
+                        self.em_lr_min_delta,
+                        self.em_min_lr,
+                        self.es_min_delta,
+                        self.es_patience
+                        )
+            elif self.em_type == "ae":
+                emulator = build_ae_emulator(
+                        [self.latent_dim, layer_hps],
+                        self.par_train,
+                        activation_func=self.activation_func
+                    )
+                losses = train_ae_based_emulator(
                     emulator,
-                    self.signal_train,
-                    self.signal_val,
-                    self.par_train,
-                    self.par_val,
+                    self.X_train,
+                    self.X_val,
+                    self.y_train,
+                    self.y_val,
                     self.epochs,
                     self.em_lr,
                     self.em_lr_factor,
@@ -255,7 +282,10 @@ class HyperParameterTuner:
                     self.em_min_lr,
                     self.es_min_delta,
                     self.es_patience
-                    )
+                )
+            else:
+                raise ValueError("Emulator type must be direct or ae.")
+            # train and get the losses
             min_losses = get_best_epoch_losses(losses)
             em_loss_val_min = min_losses[-1]
             # save results for first five trials
@@ -290,27 +320,50 @@ class HyperParameterTuner:
                 .format(self.time), 
                 allow_pickle=True
                 )
-        # now, retrain the emulator and VAE with the best hyperparameters
-        tuned_em = build_direct_emulator(
-                best_layer_hps,
-                self.signal_train,
-                self.par_train
-                )
-        em_loss, em_loss_val = train_emulator(
-                tuned_em, self.signal_train,
-                self.signal_val,
-                self.par_train,
-                self.par_val,
-                self.epochs,
-                self.em_lr,
-                self.em_lr_factor,
-                self.em_lr_patience,
-                self.em_lr_min_delta,
-                self.em_min_lr,
-                self.es_min_delta,
-                self.es_patience
-                )
+        # now, retrain the emulator with the best hyperparameters
+        if self.em_type == "direct":
+            tuned_em = build_direct_emulator(
+                    best_layer_hps,
+                    self.signal_train,
+                    self.par_train,
+                    activation_func=self.activation_func
+                    )
+            em_loss, em_loss_val = train_emulator(
+                    tuned_em, self.signal_train,
+                    self.signal_val,
+                    self.par_train,
+                    self.par_val,
+                    self.epochs,
+                    self.em_lr,
+                    self.em_lr_factor,
+                    self.em_lr_patience,
+                    self.em_lr_min_delta,
+                    self.em_min_lr,
+                    self.es_min_delta,
+                    self.es_patience
+                    )
 
+        else:
+            tuned_em = build_ae_emulator(
+                    [self.latent_dim, best_layer_hps],
+                    self.par_train,
+                    activation_func=self.activation_func
+                    )
+            em_loss, em_loss_val = train_ae_based_emulator(
+                    tuned_em,
+                    self.X_train,
+                    self.X_val,
+                    self.y_train,
+                    self.y_val,
+                    self.epochs,
+                    self.em_lr,
+                    self.em_lr_factor,
+                    self.em_lr_patience,
+                    self.em_lr_min_delta,
+                    self.em_min_lr,
+                    self.es_min_delta,
+                    self.es_patience
+                    )
         return tuned_em, five_best_trials, em_loss, em_loss_val
 
     def run_all(self):
@@ -326,3 +379,39 @@ class HyperParameterTuner:
                 best_training_loss=training_loss,
                 best_validation_loss=validation_loss
                 )
+
+class Direct_HP_Tuner(HyperParameterTuner):
+
+    def __init__(self):
+        with h5py.File(script_path + 'dataset_21cmVAE.h5', 'r') as hf:
+            signal_train = hf['signal_train'][:]
+            signal_val = hf['signal_val'][:]
+            par_train = hf['par_train'][:]
+            par_val = hf['par_val'][:]
+
+        # Input variables
+        X_train = pp.par_transform(par_train, par_train)
+        X_val = pp.par_transform(par_val, par_train)
+        # Output variables
+        y_train = pp.preproc(signal_train, signal_train)
+        y_val = pp.preproc(signal_val, signal_train)
+        super.__init__(X_train, X_val, y_train, y_val, em_type="direct")
+
+
+class AE_HP_Tuner(HyperParameterTuner):
+
+    def __init__(self, encoder):
+        with h5py.File(script_path + 'dataset_21cmVAE.h5', 'r') as hf:
+            signal_train = hf['signal_train'][:]
+            signal_val = hf['signal_val'][:]
+            par_train = hf['par_train'][:]
+            par_val = hf['par_val'][:]
+
+        # Input variables
+        X_train = pp.par_transform(par_train, par_train)
+        X_val = pp.par_transform(par_val, par_train)
+        # Output variables
+        y_train = encoder.predict(pp.preproc(signal_train, signal_train))
+        y_val = encoder.predict(pp.preproc(signal_val, signal_train))
+        self.latent_dim = y_train.shape[-1]
+        super.__init__(X_train, X_val, y_train, y_val, em_type="ae")
