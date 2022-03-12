@@ -212,7 +212,7 @@ def _train_autoencoder(
     return loss, val_loss
 
 
-def _train_ae_based_emulator(
+def train_ae_based_emulator(
         emulator,
         encoder,
         signal_train,
@@ -374,7 +374,7 @@ def train_ae_emulator(
     if len(ae_loss) < epochs:
         print('Early Stopping')
     print('Train Emulator')
-    em_loss, em_val_loss = _train_ae_based_emulator(
+    em_loss, em_val_loss = train_ae_based_emulator(
             emulator,
             encoder,
             signal_train,
