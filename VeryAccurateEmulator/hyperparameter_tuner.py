@@ -137,7 +137,7 @@ class HyperParameterTuner:
 
         script_path = __path__[0]
 
-        with h5py.File(script_path + 'dataset_21cmVAE.h5', 'r') as hf:
+        with h5py.File(script_path + '/dataset_21cmVAE.h5', 'r') as hf:
             self.signal_train = hf['signal_train'][:]
             self.signal_val = hf['signal_val'][:]
             self.signal_test = hf['signal_test'][:]
@@ -393,7 +393,7 @@ class Direct_HP_Tuner(HyperParameterTuner):
             hidden_dim_step=64,
             max_step_hidden_dim=6
         ):
-        with h5py.File(__path__[0] + 'dataset_21cmVAE.h5', 'r') as hf:
+        with h5py.File(__path__[0] + '/dataset_21cmVAE.h5', 'r') as hf:
             signal_train = hf['signal_train'][:]
             signal_val = hf['signal_val'][:]
             par_train = hf['par_train'][:]
@@ -436,7 +436,7 @@ class AE_HP_Tuner(HyperParameterTuner):
             hidden_dim_step=16,
             max_step_hidden_dim=5
         ):
-        with h5py.File(__path__[0] + 'dataset_21cmVAE.h5', 'r') as hf:
+        with h5py.File(__path__[0] + '/dataset_21cmVAE.h5', 'r') as hf:
             signal_train = hf['signal_train'][:]
             signal_val = hf['signal_val'][:]
             par_train = hf['par_train'][:]
