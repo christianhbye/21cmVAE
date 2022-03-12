@@ -4,7 +4,7 @@ import os
 import time
 import tensorflow as tf
 from tensorflow.keras.layers import Input, Dense
-from tensorflow.keras.models import Model
+from tensorflow.keras.models import Model, load_model
 from tensorflow.keras import backend as K
 
 import VeryAccurateEmulator.preprocess as pp
@@ -400,13 +400,14 @@ class Direct_HP_Tuner(HyperParameterTuner):
 
 class AE_HP_Tuner(HyperParameterTuner):
 
-    def __init__(self, encoder):
+    def __init__(self, encoder_path):
         with h5py.File(script_path + 'dataset_21cmVAE.h5', 'r') as hf:
             signal_train = hf['signal_train'][:]
             signal_val = hf['signal_val'][:]
             par_train = hf['par_train'][:]
             par_val = hf['par_val'][:]
 
+        encoder = load_model(encoder_path)
         # Input variables
         X_train = pp.par_transform(par_train, par_train)
         X_val = pp.par_transform(par_val, par_train)
