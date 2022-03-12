@@ -131,6 +131,11 @@ class HyperParameterTuner:
             hidden_dim_step=64,
             max_step_hidden_dim=6
             ):
+
+        self.X_train = X_train
+        self.X_val = X_val
+        self.y_train = y_train
+        self.y_val = y_val
         self.em_type = em_type
         self.max_trials = max_trials  # number of models to build
         self.epochs = epochs  # max epochs for training
