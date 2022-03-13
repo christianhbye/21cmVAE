@@ -187,6 +187,4 @@ dependencies:
   - zipp=3.6.0=pyhd3eb1b0_0
   - zlib=1.2.11=h7f8727e_4
   - zstd=1.4.9=haebb681_0
-  - pip:
-    - veryaccurateemulator==2.0.0
 prefix: /home/christian/miniconda3/envs/emulator_env

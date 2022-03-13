@@ -6,6 +6,7 @@ import tensorflow as tf
 from tensorflow.keras.layers import Input, Dense
 from tensorflow.keras.models import Model, load_model
 from tensorflow.keras import backend as K
+import tqdm
 
 import VeryAccurateEmulator.preprocess as pp
 from VeryAccurateEmulator.build_models import (
@@ -223,7 +224,7 @@ class HyperParameterTuner:
             f.write('\nearly_stop_patience = {}'.format(self.es_patience))
             f.write('\nEarly stop min delta = {}'.format(self.es_min_delta))
 
-    def run_tuner(self):
+    def run_tuner(self, progress_bar=False):
         """
         The main function. Calls the other functions to do the hyperparameter
         search and saves the intersting parameters and results.
@@ -241,7 +242,10 @@ class HyperParameterTuner:
             self.hidden_dim_step,
             self.max_step_hidden_dim
         )
-        for i in range(self.max_trials): 
+        iterable = range(self.max_trials)
+        if progress_bar:
+            iterable=tqdm.tqdm(iterable)
+        for i in iterable: 
             # generate architecture
             layer_hps = generate_layer_hps(no_hidden_layers, hidden_dims)
             # build the NN
@@ -311,8 +315,8 @@ class HyperParameterTuner:
             K.clear_session()
         return five_best_val
 
-    def get_results(self):
-        five_best_trials = self.run_tuner()
+    def get_results(self, progress_bar=False):
+        five_best_trials = self.run_tuner(progress_bar=progress_bar)
 
         # the very best trial:
         best_trial_idx = np.argmin(five_best_trials[:, 1])
@@ -371,10 +375,10 @@ class HyperParameterTuner:
                     )
         return tuned_em, five_best_trials, em_loss, em_loss_val
 
-    def run_all(self):
+    def run_all(self, progress_bar=False):
         self.save_sr()
         tuned_emulator, five_best_trials, training_loss, validation_loss \
-                = self.get_results()
+                = self.get_results(progress_bar=progress_bar)
         tuned_emulator.save('best_emulator_{:.0f}.h5'.format(self.time))
         np.savez(
                 'tuner_results.npz',
