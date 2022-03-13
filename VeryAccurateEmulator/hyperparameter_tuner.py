@@ -6,7 +6,8 @@ import tensorflow as tf
 from tensorflow.keras.layers import Input, Dense
 from tensorflow.keras.models import Model, load_model
 from tensorflow.keras import backend as K
-import tqdm
+from tqdm import trange
+from tqdm.notebook import trange as nb_trange
 
 import VeryAccurateEmulator.preprocess as pp
 from VeryAccurateEmulator.build_models import (
@@ -242,13 +243,12 @@ class HyperParameterTuner:
             self.hidden_dim_step,
             self.max_step_hidden_dim
         )
-        iterable = range(self.max_trials)
         if progress_bar == True:
-            iterable = tqdm.trange(self.max_trial)
+            iterable = trange(self.max_trials)
         elif progress_bar == "notebook":
-            iterable = tqdm.notebook.trange(self.max_trial)
+            iterable = nb_trange(self.max_trials)
         else:
-            iterable = range(self.max_trial)
+            iterable = range(self.max_trials)
         for i in iterable: 
             # generate architecture
             layer_hps = generate_layer_hps(no_hidden_layers, hidden_dims)
@@ -356,7 +356,7 @@ class HyperParameterTuner:
                     self.em_min_lr,
                     self.es_min_delta,
                     self.es_patience,
-                    verbose=1
+                    verbose="tqdm"
                     )
 
         else:
@@ -379,7 +379,7 @@ class HyperParameterTuner:
                     self.em_min_lr,
                     self.es_min_delta,
                     self.es_patience,
-                    verbose=1
+                    verbose="tqdm"
                     )
         return tuned_em, five_best_trials, em_loss, em_loss_val
 
