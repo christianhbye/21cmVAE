@@ -224,7 +224,7 @@ class HyperParameterTuner:
             f.write('\nearly_stop_patience = {}'.format(self.es_patience))
             f.write('\nEarly stop min delta = {}'.format(self.es_min_delta))
 
-    def run_tuner(self, progress_bar=False):
+    def run_tuner(self, progress_bar=True):
         """
         The main function. Calls the other functions to do the hyperparameter
         search and saves the intersting parameters and results.
@@ -243,8 +243,12 @@ class HyperParameterTuner:
             self.max_step_hidden_dim
         )
         iterable = range(self.max_trials)
-        if progress_bar:
-            iterable=tqdm.tqdm(iterable)
+        if progress_bar == True:
+            iterable = tqdm.trange(self.max_trial)
+        elif progress_bar == "notebook":
+            iterable = tqdm.notebook.trange(self.max_trial)
+        else:
+            iterable = range(self.max_trial)
         for i in iterable: 
             # generate architecture
             layer_hps = generate_layer_hps(no_hidden_layers, hidden_dims)
@@ -269,8 +273,9 @@ class HyperParameterTuner:
                         self.em_lr_min_delta,
                         self.em_min_lr,
                         self.es_min_delta,
-                        self.es_patience
-                        )
+                        self.es_patience,
+                        verbose=0
+                    )
             elif self.em_type == "ae":
                 emulator = build_ae_emulator(
                         [self.latent_dim, layer_hps],
@@ -290,7 +295,8 @@ class HyperParameterTuner:
                     self.em_lr_min_delta,
                     self.em_min_lr,
                     self.es_min_delta,
-                    self.es_patience
+                    self.es_patience,
+                    verbose=0
                 )
             else:
                 raise ValueError("Emulator type must be direct or ae.")
@@ -315,7 +321,7 @@ class HyperParameterTuner:
             K.clear_session()
         return five_best_val
 
-    def get_results(self, progress_bar=False):
+    def get_results(self, progress_bar=True):
         five_best_trials = self.run_tuner(progress_bar=progress_bar)
 
         # the very best trial:
@@ -349,7 +355,8 @@ class HyperParameterTuner:
                     self.em_lr_min_delta,
                     self.em_min_lr,
                     self.es_min_delta,
-                    self.es_patience
+                    self.es_patience,
+                    verbose=1
                     )
 
         else:
@@ -371,11 +378,12 @@ class HyperParameterTuner:
                     self.em_lr_min_delta,
                     self.em_min_lr,
                     self.es_min_delta,
-                    self.es_patience
+                    self.es_patience,
+                    verbose=1
                     )
         return tuned_em, five_best_trials, em_loss, em_loss_val
 
-    def run_all(self, progress_bar=False):
+    def run_all(self, progress_bar=True):
         self.save_sr()
         tuned_emulator, five_best_trials, training_loss, validation_loss \
                 = self.get_results(progress_bar=progress_bar)
