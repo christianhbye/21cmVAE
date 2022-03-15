@@ -668,20 +668,17 @@ class AutoEncoderEmulator:
                 "Emulator min LR must be <= initial LR"
 
         # hyperparameters
-        layer_hps = [
-                self.encoder_dims,
-                self.latent_dim,
-                self.decoder_dims,
-                self.em_dims
-                ]
+        ae_layer_hps = [self.encoder_dims, self.latent_dim, self.decoder_dims]
+        em_layer_hps = [self.latent_dim, self.em_dims]
 
         # build autoencoder and emulator
         autoencoder, encoder, decoder = bm.build_autoencoder(
-                layer_hps,self.signal_train,
+                ae_layer_hps,
+                self.signal_train,
                 self.activation_func
                 )
         emulator = bm.build_ae_emulator(
-                layer_hps,
+                em_layer_hps,
                 self.par_train,
                 self.activation_func
                 )

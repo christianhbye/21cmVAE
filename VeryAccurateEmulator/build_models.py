@@ -52,9 +52,9 @@ def build_autoencoder(layer_hps, signal_train, activation_func='relu'):
     https://keras.io/api/layers/activations/)
     :return: the autoencoder as a keras model object
     """
-    assert len(layer_hps) == 4,\
+    assert len(layer_hps) == 3,\
             "Layer hps should have one element for each of encoder, decoder," \
-            "emulator, latent dim"
+            "latent dim"
     encoding_hidden_dims = layer_hps[0]  # the layers of the encoder
     ae_input = Input(shape=(signal_train.shape[1],))  # autoencoder input layer
 
@@ -126,11 +126,10 @@ def build_ae_emulator(layer_hps, par_train, activation_func='relu'):
     (see https://keras.io/api/layers/activations/)
     :return: the emulator as a keras model object
     """
-    assert len(layer_hps) == 4,\
-            "Layer hps should have one element for each of encoder, decoder," \
-            "emulator, latent dim"
+    assert len(layer_hps) == 2,\
+            "Layer hps should have one element for each of emulator, latent dim"
     em_input_par = Input(shape=(par_train.shape[1],), name='em_input')
-    em_hidden_dims = layer_hps[3]
+    em_hidden_dims = layer_hps[1]
     for i, dim in enumerate(em_hidden_dims):  # add hidden layers one by one
         if i == 0:
             input_layer = em_input_par
@@ -142,7 +141,7 @@ def build_ae_emulator(layer_hps, par_train, activation_func='relu'):
                 name='em_hidden_layer_' + str(i)
                 )(input_layer)
 
-    latent_dim = layer_hps[1]  # the latent layer of the emulator
+    latent_dim = layer_hps[0]  # the latent layer of the emulator
     autoencoder_par = Dense(latent_dim, name='em_autoencoder')(x)
     emulator = Model(em_input_par, autoencoder_par, name='AE_Emulator')
     return emulator

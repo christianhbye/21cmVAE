@@ -3,6 +3,7 @@ from tensorflow.keras.callbacks import ReduceLROnPlateau, EarlyStopping
 from tensorflow.keras import optimizers
 from tensorflow.keras.losses import mse
 import tensorflow as tf
+from tqdm.keras import TqdmCallback
 import numpy as np
 import VeryAccurateEmulator.preprocess as pp
 
@@ -76,7 +77,8 @@ def train_emulator(
         lr_min_delta,
         min_lr,
         es_delta,
-        es_patience
+        es_patience,
+        verbose="tqdm"
         ):
     """
     Trains the emulator.
@@ -129,6 +131,10 @@ def train_emulator(
     X_train = pp.par_transform(par_train, par_train) # input train variables
     X_val = pp.par_transform(par_val, par_train)  # input validation variables
     validation_set = (X_val, y_val)
+    cb = [reduce_lr, early_stop]
+    if verbose == "tqdm":
+        cb.append(TqdmCallback())
+        verbose = 0
     hist = emulator.fit(
             x=X_train,
             y=y_train,
@@ -136,8 +142,9 @@ def train_emulator(
             epochs=epochs,
             validation_data=validation_set,
             validation_batch_size=256, 
-            callbacks=[reduce_lr, early_stop]
-            )  # train emulator
+            callbacks=cb,
+            verbose=verbose
+        )  # train emulator
     loss, val_loss = hist.history['loss'], hist.history['val_loss']
     return loss, val_loss
 
@@ -153,8 +160,9 @@ def _train_autoencoder(
         lr_min_delta,
         min_lr,
         es_delta,
-        es_patience
-        ):
+        es_patience,
+        verbose="tqdm"
+    ):
     """
     Trains the autoencoder.
     :param autoencoder: keras model object, the uncompiled autoencoder
@@ -199,26 +207,30 @@ def _train_autoencoder(
     y_train = pp.preproc(signal_train, signal_train)
     y_val = pp.preproc(signal_val, signal_train)
     validation_set = (y_val, y_val)
+    cb = [reduce_lr, early_stop]
+    if verbose == "tqdm":
+        cb.append(TqdmCallback())
+        verbose = 0
     hist = autoencoder.fit(
             x=y_train,
             y=y_train,
             batch_size=256,
             epochs=epochs,
-            callbacks=[reduce_lr, early_stop],
+            callbacks=cb,
             validation_data=validation_set,
-            validation_batch_size=256
-            )  # train autoencoder
+            validation_batch_size=256,
+            verbose=verbose
+        )  # train autoencoder
     loss, val_loss = hist.history['loss'], hist.history['val_loss']
     return loss, val_loss
 
 
-def _train_ae_based_emulator(
+def train_ae_based_emulator(
         emulator,
-        encoder,
-        signal_train,
-        signal_val,
-        par_train,
-        par_val,
+        X_train,
+        X_val,
+        y_train,
+        y_val,
         epochs,
         initial_lr,
         lr_factor,
@@ -226,18 +238,16 @@ def _train_ae_based_emulator(
         lr_min_delta,
         min_lr,
         es_delta,
-        es_patience
-        ):
+        es_patience,
+        verbose="tqdm"
+    ):
     """
     Trains the autoencoder-based emulator (described in Appendix A).
     :param emulator: keras model object, the uncompiled emulator
-    :param encoder: keras model object, the encoder part of the autoencoder
-    :param signal_train: numpy array with global signals in training set
-    :param signal_val: numpy array with global signals in validation set
-    :param par_train: numpy array with parameters corresponding to signals in
-    signal_train
-    :param par_val: numpy array with parameters corresponding to signals in
-    signal_val
+    :param X_train: numpy array with preprocessed parameters in training set
+    :param X_val: numpy array with preprocessed parameters in validation set
+    :param y_train: numpy array with latent parameters from training set
+    :param y_val: numpy array with latent parameters from validation set
     :param epochs: int, number of epcohs to train model for
     :param initial_lr: float, initial learning rate of emulator
     :param lr_factor: float, factor to multiply learning rate by in LR scheduler
@@ -270,20 +280,20 @@ def _train_ae_based_emulator(
             patience=es_patience,
             restore_best_weights=True
             )  # early stopping
-    y_train = encoder.predict(pp.preproc(signal_train, signal_train))  
-    y_val = encoder.predict(pp.preproc(signal_val, signal_train))
-    X_train = pp.par_transform(par_train, par_train)
-    X_val = pp.par_transform(par_val, par_train)
-    validation_set = (X_val, y_val)
+    cb = [reduce_lr, early_stop]
+    if verbose == "tqdm":
+        cb.append(TqdmCallback())
+        verbose = 0
     hist = emulator.fit(
             x=X_train,
             y=y_train,
             batch_size=256,
             epochs=epochs,
-            validation_data=validation_set,
+            validation_data=(X_val, y_val),
             validation_batch_size=256,
-            callbacks=[reduce_lr, early_stop]
-            )  # train emulator
+            callbacks=cb,
+            verbose=verbose
+        )  # train emulator
     loss, val_loss = hist.history['loss'], hist.history['val_loss']
     return loss, val_loss
 
@@ -310,8 +320,9 @@ def train_ae_emulator(
         em_lr_min_delta,
         em_min_lr,
         em_es_delta,
-        em_es_patience
-        ):
+        em_es_patience,
+        verbose="auto"
+    ):
     """
     Trains the auteoncoder and the emulator based on it.
     :param autoencoder: keras model object, the uncompiled autoencoder
@@ -369,18 +380,23 @@ def train_ae_emulator(
             ae_lr_min_delta,
             ae_min_lr,
             ae_es_delta,
-            ae_es_patience
-            )
+            ae_es_patience,
+            verbose=verbose
+        )
     if len(ae_loss) < epochs:
         print('Early Stopping')
     print('Train Emulator')
-    em_loss, em_val_loss = _train_ae_based_emulator(
+    y_train = encoder.predict(pp.preproc(signal_train, signal_train))  
+    y_val = encoder.predict(pp.preproc(signal_val, signal_train))
+    X_train = pp.par_transform(par_train, par_train)
+    X_val = pp.par_transform(par_val, par_train)
+
+    em_loss, em_val_loss = train_ae_based_emulator(
             emulator,
-            encoder,
-            signal_train,
-            signal_val,
-            par_train,
-            par_val,
+            X_train,
+            X_val,
+            y_train,
+            y_val,
             epochs,
             em_lr,
             em_lr_factor,
@@ -388,8 +404,9 @@ def train_ae_emulator(
             em_lr_min_delta,
             em_min_lr,
             em_es_delta,
-            em_es_patience
-            )
+            em_es_patience,
+            verbose=verbose
+        )
     if len(em_loss) < epochs:
         print('Early Stopping')
     return ae_loss, ae_val_loss, em_loss, em_val_loss
