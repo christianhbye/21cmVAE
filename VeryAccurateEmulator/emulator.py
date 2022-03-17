@@ -1,6 +1,5 @@
 import h5py
 import numpy as np
-import os
 import tensorflow as tf
 
 from VeryAccurateEmulator.training_tools import (
@@ -407,7 +406,7 @@ class AutoEncoderEmulator:
             if 'autoencoder' in kwargs:
                 print('Kwarg autoencoder without decoder has no effect.' \
                         'Resetting to default autoencoder.')
-                kwarsg.pop('autoencoder')
+                kwargs.pop('autoencoder')
         else:  # both encoder and decoder are present
             en, de = kwargs['encoder'], kwargs['decoder']
             ae = tf.keras.models.Model(inputs=en.input, outputs=de(en.output))
