@@ -94,18 +94,18 @@ def build_autoencoder(layer_hps, signal_train, activation_func='relu'):
     decoder_layers = []
     for i, dim in enumerate(decoding_hidden_dims):
         input_layer = layers[-1]
-        x = Dense(
+        decoder_layer = Dense(
                 dim,
                 activation=activation_func,
                 name='decoder_hidden_layer_' + str(i)
                 )
-        decoder_layers.append(x)
-        layers.append(x)
+        decoder_layers.append(decoder_layer)
         x = decoder_layer(input_layer)
+        layers.append(x)
 
     decoder_output_layer = Dense(signal_train.shape[1])  # output of decoder
     decoder_layers.append(decoder_output_layer)
-    decoded = decoder_output_layer(x)
+    decoded = decoder_output_layer(layers[-1])
     ae_output = decoded
 
     # create the AutoEncoder
