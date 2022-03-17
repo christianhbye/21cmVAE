@@ -24,11 +24,12 @@ jobs:
           # sudo apt-get install mpich  # needed for mpi4py
           # pip install mpi4py
           conda env create --prefix emulator_env -f environment.yml
+          conda activate emulator_env
           python -m pip install .
           # if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
       - name: Lint with flake8
         run: |
-          python -m pip install flake8
+          conda install flake8
           # stop the build if there are Python syntax errors or undefined names
           flake8 ./VeryAccurateEmulator --count --select=E9,F63,F7,F82 --show-source --statistics
           # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
