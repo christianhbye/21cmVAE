@@ -8,4 +8,4 @@ build/
 VeryAccurateEmulator.egg-info/
 notebooks/train_many_ae.ipynb
 paper/
-tests/unfinished-tests/
+unfinished-tests/
