@@ -1,7 +1,7 @@
 import h5py
 import pytest
-import VeryAccurateEmulator.build_models as bm
-from VeryAccurateEmulator import __path__
+import .build_models as bm
+from . import __path__
 
 DATA_FILE = __path__[0] + "/dataset_21cmVAE.h5"
 
