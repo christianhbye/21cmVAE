@@ -27,7 +27,7 @@ To install 21cmVAE in a `conda environment <https://docs.conda.io/projects/conda
 
    git clone https://github.com/christianhbye/21cmVAE.git
    cd 21cmVAE
-   conda create env --prefix emulator_env -f environment.yml
+   conda env create --prefix emulator_env -f environment.yml
    python -m pip install .
 
 Contributions
