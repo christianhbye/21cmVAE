@@ -1,7 +1,19 @@
-import h5py
-import pytest
-from VeryAccurateEmulator import build_models as bm
-from VeryAccurateEmulator import __path__
+try:
+    import h5py
+except SyntaxError:
+    print("h5py")
+try:
+    import pytest
+except SyntaxError:
+    print("pytest")
+try:
+    from VeryAccurateEmulator import build_models as bm
+except SyntaxError:
+    print("bm")
+try:
+    from VeryAccurateEmulator import __path__
+except:
+    print("__path__")
 
 DATA_FILE = __path__[0] + "/dataset_21cmVAE.h5"
 
