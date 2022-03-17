@@ -22,7 +22,8 @@ jobs:
           # python -m pip install wheel
           # sudo apt-get update
           # sudo apt-get install mpich  # needed for mpi4py
-          # pip install mpi4py 
+          # pip install mpi4py
+          conda create env --prefix emulator_env -f environment.yml
           python -m pip install .
           # if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
       - name: Lint with flake8
