@@ -18,4 +18,8 @@ def test_build_direct_emulator():
     assert len(em.layers) == len(layer_hps) + 2  # + input/output layers
     all_dims = [par_train.shape[-1]] + layer_hps + [signal_train.shape[-1]]
     for i, layer in enumerate(em.layers):
-        assert layer.output_shape[-1] == all_dims[i]
+        if i == 0:
+            shape = layer.output_shape[0][-1]
+        else:
+            shape = layer.output_shape[-1]
+        assert shape == all_dims[i], f"{i=}"
