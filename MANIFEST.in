@@ -1,2 +1,0 @@
-include VeryAccurateEmulator/dataset_21cmVAE.h5
-recursive-include VeryAccurateEmulator/models/*
