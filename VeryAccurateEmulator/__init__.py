@@ -11,6 +11,7 @@ from pathlib import Path
 HERE = __file__[:-len("__init__.py")]
 if not Path(HERE+"dataset_21cmVAE.h5").exists():
     import requests
+    print("Downloading dataset.")
     r = requests.get(
         "https://zenodo.org/record/5084114/files/dataset_21cmVAE.h5?download=1"
     )
