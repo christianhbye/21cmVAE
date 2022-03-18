@@ -3,29 +3,56 @@ from tensorflow.keras.layers import Input, Dense
 from tensorflow.keras.models import Model
 
 
+def _build_model(input_layer, out_dim, hidden_dims, activation_func):
+    """
+    Function that builds a Keras model.
+
+    Parameters
+    ----------
+    input_layer : keras Layer obect
+        Input layer to model.
+    out_dim : int
+        Dimension of output layer.
+    hidden_dims : list of ints
+        Dimensions of hidden layers.
+    activation_func : st or tf.keras.activations object
+        Name of a keras recognized activation function or an instance of a
+        tf.keras.activations.
+    
+    Returns
+    -------
+    emulator : tf.keras Model object
+        A keras model object.
+
+    """
+    x = input_layer
+    for dim in hidden_dims:
+        x = Dense(dim, activation=activation_func)(x)
+    output_par = Dense(out_dim)(x)
+    model = Model(input_layer, output_par)
+    return model
+
+
 def build_direct_emulator(
-        layer_hps,
-        signal_train,
         par_train,
-        activation_func='relu'
+        signal_train,
+        hidden_dims,
+        activation_func="relu"
     ):
     """
     Function that builds the emulator.
 
     Parameters
     ----------
-    layer_hps : list of ints
-        The hyperparameter controlling the number of layers and their
-        dimensionalities.
-        Example: layer_hps=[32, 128, 64] creates an emulator with architecture
-        7-32-128-64-451 (7 and 451 are the fixed input and output layers)
-    signal_train : numpy.ndarray
-        Training signals
     par_train : numpy.ndarray
-        Training parameters
+        Training parameters.
+    signal_train : numpy.ndarray
+        Training signals.
+    hidden_dims : list of ints
+        Dimensions of hidden layers.
     activation_func : st or tf.keras.activations object
         Name of a keras recognized activation function or an instance of a
-        tf.keras.activations
+        tf.keras.activations. Default 'relu'.
     
     Returns
     -------
@@ -34,25 +61,75 @@ def build_direct_emulator(
 
     """
 
-    if len(np.shape(signal_train)) > 1:
-        assert np.shape(signal_train)[0] == np.shape(par_train)[0], \
-                "Training set needs equally many signals and params"
-    em_input_par = Input(shape=(par_train.shape[1],), name='em_input')
-    em_hidden_dims = layer_hps
-    layers = [em_input_par]
-    # add hidden layers with the specified dimensions one by one:
-    for i, dim in enumerate(em_hidden_dims):
-        input_layer = layers[-1]
-        x = Dense(
-                dim,
-                activation=activation_func,
-                name='em_hidden_layer_' + str(i)
-                )(input_layer)
-        layers.append(x)
-    output_par = Dense(signal_train.shape[1])(layers[-1])
-    emulator = Model(em_input_par, output_par, name='Emulator')
-    return emulator
+    em = _build_model(
+        Input(shape=(par_train.shape[-1],)),
+        signal_train.shape[-1],
+        hidden_dims,
+        activation_func
+    )
+    return em
 
+def build_autoencoder(
+        latent_dim,
+        signal_train,
+        enc_hidden_dims,
+        dec_hidden_dims,
+        enc_activation_func="relu",
+        dec_actication_func="relu"
+    ):
+    """
+    Function that builds the emulator.
+
+    Parameters
+    ----------
+    latent_dim : int
+        Dimensions of latent space.
+    signal_train : numpy.ndarray
+        Training signals
+    enc_hidden_dims : list of ints
+        Dimensions of hidden layers of encoder.
+    dec_hidden_dims : list of ints
+        Dimensions of hidden layers of decoder.
+    enc_activation_func : st or tf.keras.activations object
+        Name of a keras recognized activation function or an instance of a
+        tf.keras.activations for the encoder. Default 'relu'.
+    dec_activation_func : st or tf.keras.activations object
+        Name of a keras recognized activation function or an instance of a
+        tf.keras.activations for the decoder. Default 'relu'.
+    
+    Returns
+    -------
+    autoencoder, encoder, decoder : tf.keras Model objects
+        The autoencoder and the corresponding encoder and decoder as keras
+        model objects
+
+    """
+
+    encoder = _build_model(
+        Input(shape=(signal_train.shape[-1],)),
+        latent_dim,
+        enc_hidden_dims,
+        enc_activation_func
+    )
+
+    ae_decoder = _build_model(
+        encoder.layers[-1],
+        signal_train.shape[-1],
+        dec_hidden_dims,
+        dec_activation_func
+    )
+
+    decoder = _build_model(
+        Input(shape=(latent_dim,)),
+        signal_train.shape[-1],
+        dec_hidden_dims,
+        dec_activation_func
+    )
+    autoencoder = _build_model(
+        Input
+
+
+    return em
 
 def build_autoencoder(layer_hps, signal_train, activation_func='relu'):
     """
