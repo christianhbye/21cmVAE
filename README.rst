@@ -17,9 +17,9 @@ Questions and comments are welcome; please e-mail me at chbye@berkeley.edu. If y
 Set-up
 ######
 
-Dependencies: Python>=3.8, Tensorflow>=2.5, h5py, numpy.
+Dependencies: python>=3.8, tensorflow>=2.5, h5py, jupyter, matplotlib, numpy, tqdm
 
-Optional: matplotlib, jupyter (both required for the sample notebooks).
+For developing: black, flake8, pytest
 
 To install 21cmVAE in a `virtual environment <https://docs.python.org/3/library/venv.html>`_ (recommended) with all required dependencies, do:
 
@@ -30,6 +30,8 @@ To install 21cmVAE in a `virtual environment <https://docs.python.org/3/library/
    python -m venv .venv
    source .venv/bin/activate
    python -m pip install .
+
+For development, please install with :code:`python -m pip install .[dev]` to get the extra dependencies.
 
 Contributions
 #############
