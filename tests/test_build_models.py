@@ -1,13 +1,17 @@
-#import h5py
-#import pytest
-#from VeryAccurateEmulator import build_models as bm
-#from VeryAccurateEmulator import __path__
+import h5py
+import pytest
+from VeryAccurateEmulator import build_models as bm
+from VeryAccurateEmulator import __path__
 
-DATA_FILE = __path__[0] + "/dataset_21cmVAE.h5"
+#DATA_FILE = __path__[0] + "/dataset_21cmVAE.h5"
 
-with h5py.File(DATA_FILE, "r") as hf:
-    signal_train = hf["signal_train"][:]
-    par_train = hf["par_train"][:]
+#with h5py.File(DATA_FILE, "r") as hf:
+#    signal_train = hf["signal_train"][:]
+#    par_train = hf["par_train"][:]
+
+import numpy as np
+signal_train = np.ones((2000,451))
+par_train = np.zeros((2000, 7))
 
 def test_build_direct_emulator():
     layer_hps = [32, 128, 64]
