@@ -102,7 +102,7 @@ class DirectEmulator:
         self.signal_val = signal_val
         self.signal_test = signal_test
 
-        self.model = gen_model(
+        self.emulator = gen_model(
             self.par_train.shape[-1],
             hiddden_dims,
             self.signal_train.shape[-1],
@@ -129,7 +129,7 @@ class DirectEmulator:
         if verbose == "tqdm":
             callbakcs.append(TqdmCallback())
             verbose = 0
-        hist = self.model.fit(
+        hist = self.emulator.fit(
             x=X_train,
             y=y_train,
             batch_size=256,
@@ -273,3 +273,33 @@ class AutoEncoderEmulator:
         )
         loss = hist.history["loss"]
         val_loss = hist.history["val_loss"]
+
+        return ae_loss, ae_loss_val, em_loss, em_loss_val
+
+    def predict(self, params):
+        transformed_params = pp.par_transform(params, self.par_train)
+        em_pred = self.emulator.predict(transformed_params)
+        decoded = self.autoencoder.decoder.predict(em_pred)
+        pred = pp.unpreproc(decoded, self.signal_train)
+        if pred.shape[0] == 1:
+            return pred[0, :]
+        else:
+            return pred
+
+    def test_error(
+        self, use_autoencoder=False,relative=True, flow=None, fhigh=None
+    ):
+        if use_autoencoder:
+            pred = self.autoencoder(self.par_test)
+        else:
+            pred = self.predict(self.par_test)
+        err = error(
+            self.signal_test,
+            pred,
+            self.frequencies,
+            relative=relative,
+            flow=flow,
+            fhigh=fhigh,
+        )
+        return err
+
