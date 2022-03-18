@@ -17,17 +17,18 @@ Questions and comments are welcome; please e-mail me at chbye@berkeley.edu. If y
 Set-up
 ######
 
-Dependencies: Python>=3.6, Tensorflow>=2.5, h5py, numpy.
+Dependencies: Python>=3.8, Tensorflow>=2.5, h5py, numpy.
 
 Optional: matplotlib, jupyter (both required for the sample notebooks).
 
-To install 21cmVAE in a `conda environment <https://docs.conda.io/projects/conda/en/latest/user-guide/concepts/environments.html>`_ (recommended) with all required dependencies, do:
+To install 21cmVAE in a `virtual environment <https://docs.python.org/3/library/venv.html>`_ (recommended) with all required dependencies, do:
 
 .. code:: bash
 
    git clone https://github.com/christianhbye/21cmVAE.git
    cd 21cmVAE
-   conda create env --prefix emulator_env -f environment.yml
+   python -m venv .venv
+   source .venv/bin/activate
    python -m pip install .
 
 Contributions

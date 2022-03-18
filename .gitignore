@@ -4,8 +4,8 @@ checkpoints/
 VeryAccurateEmulator/dataset_21cmVAE.h5
 RESULTS
 build/
-dist/
+.venv/
 VeryAccurateEmulator.egg-info/
-tests/
 notebooks/train_many_ae.ipynb
 paper/
+unfinished-tests/
