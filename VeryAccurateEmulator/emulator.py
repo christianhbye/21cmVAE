@@ -2,9 +2,10 @@ import tensorflow as tf
 from tqdm.keras import TqdmCallback
 import numpy as np
 
-import .preprocess as pp
+import VeryAccurateEmulator.preprocess as pp
 
-def gen_model(in_dim, hidden_dims, out_dim, activation_func, name=None)
+
+def gen_model(in_dim, hidden_dims, out_dim, activation_func, name=None):
     input_layer = tf.keras.Input(shape=(in_dim,))
     layers = [input_layer]
     for dim in hidden_dims:
@@ -15,20 +16,24 @@ def gen_model(in_dim, hidden_dims, out_dim, activation_func, name=None)
     model = tf.keras.Sequential(layers, name=name)
     return model
 
+
 NU_0 = 1420405751.7667  # Hz
+
 
 def redshift2freq(z):
     nu = NU_0 / (1 + z)
     nu /= 1e6  # convert to MHz
     return nu
 
+
 def freq2redshift(nu):
     """
     Frequency in MHz.
     """
     nu *= 1e6  # to Hz
-    z = NU_0/nu - 1
+    z = NU_0 / nu - 1
     return z
+
 
 def error(
     true_signal, pred_signal, nu_arr, relative=True, flow=None, fhigh=None
@@ -43,18 +48,18 @@ def error(
         f = np.argwhere(nu_arr >= flow)
     elif fhigh:
         f = np.argwhere(nu_arr <= fhigh)
-    
+
     pred_signal = predicted_signal[:, f]
     true_signal = true_signal[:, f]
-    
+
     err = np.sqrt(np.mean((pred_signal - true_signal) ** 2, axis=1))
     if relative:  # give error as fraction of amplitude in the desired band
         err /= np.max(np.abs(true_signal), axis=1)
         err *= 100  # %
     return err
 
-class DirectEmulator(tf.keras.models.Model):
 
+class DirectEmulator(tf.keras.models.Model):
     def __init__(
         self,
         par_train,
@@ -67,16 +72,16 @@ class DirectEmulator(tf.keras.models.Model):
         activation_func="relu",
         redshifts=np.linspace(5, 50, num=451),
         frequencies=None,
-        name="emulator"
+        name="emulator",
     ):
         super().__init__()
-        
+
         self.model = gen_model(
             par_train.shape[-1],
             hiddden_dims,
             signal_train.shape[-1],
             activation_func,
-            name=name
+            name=name,
         )
 
         self.X_train = pp.par_transform(par_train, par_train)
@@ -92,9 +97,7 @@ class DirectEmulator(tf.keras.models.Model):
         self.redshifts = redshifts
         self.frequencies = frequencies
 
-    def train(
-        self, epochs, callbacks=[], verbose="tqdm"
-    ):
+    def train(self, epochs, callbacks=[], verbose="tqdm"):
         if verbose == "tqdm":
             callbakcs.append(TqdmCallback())
             verbose = 0
@@ -106,7 +109,7 @@ class DirectEmulator(tf.keras.models.Model):
             validation_data=(self.X_val, self.y_val),
             validation_batch_size=256,
             callbacks=callbacks,
-            verbose=verbose
+            verbose=verbose,
         )
         loss = hist.history["loss"]
         val_loss = hist.history["val_loss"]
@@ -128,8 +131,6 @@ class DirectEmulator(tf.keras.models.Model):
             self.frequencies,
             relative=relative,
             flow=flow,
-            fhigh=fhigh
+            fhigh=fhigh,
         )
         return err
-        
-
