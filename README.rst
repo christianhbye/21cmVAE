@@ -17,7 +17,7 @@ Questions and comments are welcome; please e-mail me at chbye@berkeley.edu. If y
 Set-up
 ######
 
-Dependencies: Python>=3.6, Tensorflow>=2.5, h5py, numpy.
+Dependencies: Python>=3.8, Tensorflow>=2.5, h5py, numpy.
 
 Optional: matplotlib, jupyter (both required for the sample notebooks).
 

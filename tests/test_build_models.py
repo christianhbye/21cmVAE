@@ -3,15 +3,11 @@ import pytest
 from VeryAccurateEmulator import build_models as bm
 from VeryAccurateEmulator import __path__
 
-#DATA_FILE = __path__[0] + "/dataset_21cmVAE.h5"
+DATA_FILE = __path__[0] + "/dataset_21cmVAE.h5"
 
-#with h5py.File(DATA_FILE, "r") as hf:
-#    signal_train = hf["signal_train"][:]
-#    par_train = hf["par_train"][:]
-
-import numpy as np
-signal_train = np.ones((2000,451))
-par_train = np.zeros((2000, 7))
+with h5py.File(DATA_FILE, "r") as hf:
+    signal_train = hf["signal_train"][:]
+    par_train = hf["par_train"][:]
 
 def test_build_direct_emulator():
     layer_hps = [32, 128, 64]
@@ -26,4 +22,4 @@ def test_build_direct_emulator():
             shape = layer.output_shape[0][-1]
         else:
             shape = layer.output_shape[-1]
-        assert shape == all_dims[i], f"{i=}"
+        assert shape == all_dims[i]
