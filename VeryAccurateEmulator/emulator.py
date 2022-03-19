@@ -27,7 +27,7 @@ def gen_model(in_dim, hidden_dims, out_dim, activation_func, name=None):
 def relative_mse_loss(signal_train):
     """
     The square of the FoM in the paper, in units of standard deviation
-    since the signals are preproccesed. We need a wrapper function to be able to
+    since the signals are preproccesed. We need a wrapper function to
     pass signal_train as an input param.
     :param signal_train: numpy array of training signals
     :param y_true: array, the true signal concatenated with the amplitude
@@ -40,8 +40,9 @@ def relative_mse_loss(signal_train):
         signal = y_true + tf.convert_to_tensor(np.mean(signal_train, axis=0))
         # get amplitude in units of standard deviation of signals
         reduced_amp = tf.math.reduce_max(tf.abs(signal), axis=1, keepdims=True)
-        loss = mse(y_pred, y_true)  # loss is mean squared error ...
-        loss /= K.square(reduced_amp)  # ... divided by square of amplitude
+        # loss is mse / square of amplitude
+        loss = tf.keras.metrics.mean_squared_error(y_pred, y_true)
+        loss /= tf.keras.backend.square(reduced_amp)
         return loss
 
     return loss_function
@@ -79,7 +80,7 @@ def error(
     elif fhigh:
         f = np.argwhere(nu_arr <= fhigh)
 
-    pred_signal = predicted_signal[:, f]
+    pred_signal = pred_signal[:, f]
     true_signal = true_signal[:, f]
 
     err = np.sqrt(np.mean((pred_signal - true_signal) ** 2, axis=1))
@@ -125,7 +126,7 @@ class DirectEmulator:
 
         self.emulator = gen_model(
             self.par_train.shape[-1],
-            hiddden_dims,
+            hidden_dims,
             self.signal_train.shape[-1],
             activation_func,
             name="emulator",
@@ -135,18 +136,12 @@ class DirectEmulator:
             if redshifts is not None:
                 frequencies = redshift2freq(redshifts)
         elif redshifts is None:
-            redshifts = freq2redshifts(frequencies)
+            redshifts = freq2redshift(frequencies)
         self.redshifts = redshifts
         self.frequencies = frequencies
 
-    def load_model(
-        self,
-        model_path=PATH + "models/emulator.h5",
-        custom_loss=relative_mse_loss(self.signal_train),
-    ):
-        custom_obj = {}
-        if custom_loss is not None:
-            custom_obj["loss_function"] = custom_loss
+    def load_model(self, model_path=PATH + "models/emulator.h5"):
+        custom_obj = {"loss_function": relative_mse_loss(self.signal_train)}
         self.emulator = tf.keras.models.load_model(
             model_path, custom_objects=custom_obj
         )
@@ -159,7 +154,7 @@ class DirectEmulator:
         y_val = pp.preproc(self.signal_val, self.signal_train)
 
         if verbose == "tqdm":
-            callbakcs.append(TqdmCallback())
+            callbacks.append(TqdmCallback())
             verbose = 0
         hist = self.emulator.fit(
             x=X_train,
@@ -321,7 +316,7 @@ class AutoEncoderEmulator:
         loss = hist.history["loss"]
         val_loss = hist.history["val_loss"]
 
-        return ae_loss, ae_loss_val, em_loss, em_loss_val
+        return ae_loss, ae_val_loss, loss, val_loss
 
     def predict(self, params):
         transformed_params = pp.par_transform(params, self.par_train)
