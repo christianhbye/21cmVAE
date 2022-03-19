@@ -93,7 +93,7 @@ with h5py.File(PATH + "dataset_21cmVAE.h5") as hf:
     signal_val = hf["signal_val"][:]
     signal_test = hf["signal_test"][:]
 
-
+redshifts=np.lisnpace(5, 50, 451)
 
 class DirectEmulator:
     def __init__(
@@ -106,8 +106,8 @@ class DirectEmulator:
         signal_test=signal_test,
         hidden_dims=[],
         activation_func="relu",
-        redshifts=np.linspace(5, 50, num=451),
-        frequencies=None,
+        redshifts=redshifts,
+        frequencies=None
     ):
         
         self.par_train = par_train
@@ -290,7 +290,7 @@ class AutoEncoderEmulator:
             verbose = 0
         hist = self.autoencoder.fit(
             x=y_train,
-            y=y_train
+            y=y_train,
             batch_size=256,
             epochs=epochs,
             validation_data=(y_val, y_val),
