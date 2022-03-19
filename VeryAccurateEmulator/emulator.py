@@ -80,8 +80,9 @@ def error(
     elif fhigh:
         f = np.argwhere(nu_arr <= fhigh)
 
-    pred_signal = pred_signal[:, f]
-    true_signal = true_signal[:, f]
+    if flow or fhigh:
+        pred_signal = pred_signal[:, f]
+        true_signal = true_signal[:, f]
 
     err = np.sqrt(np.mean((pred_signal - true_signal) ** 2, axis=1))
     if relative:  # give error as fraction of amplitude in the desired band
@@ -99,7 +100,7 @@ with h5py.File(PATH + "dataset_21cmVAE.h5") as hf:
     signal_val = hf["signal_val"][:]
     signal_test = hf["signal_test"][:]
 
-redshifts = np.lisnpace(5, 50, 451)
+redshifts = np.linspace(5, 50, 451)
 
 
 class DirectEmulator:
@@ -123,6 +124,16 @@ class DirectEmulator:
         self.signal_train = signal_train
         self.signal_val = signal_val
         self.signal_test = signal_test
+
+        self.par_labels = [
+            "fstar",
+            "Vc",
+            "fx",
+            "tau",
+            "alpha",
+            "nu_min",
+            "Rmfp"
+        ]
 
         self.emulator = gen_model(
             self.par_train.shape[-1],
@@ -172,7 +183,7 @@ class DirectEmulator:
 
     def predict(self, params):
         transformed_params = pp.par_transform(params, self.par_train)
-        proc_pred = self.model.predict(transformed_params)
+        proc_pred = self.emulator.predict(transformed_params)
         pred = pp.unpreproc(proc_pred, self.signal_train)
         if pred.shape[0] == 1:
             return pred[0, :]
@@ -218,22 +229,24 @@ class AutoEncoder(tf.keras.models.Model):
         )
 
     def call(self, x):
-        return self.decoder(self.enocder(x))
+        return self.decoder(self.encoder(x))
 
+# default parameters
+latent_dim = 9
 
 class AutoEncoderEmulator:
     def __init__(
         self,
-        par_train,
-        par_val,
-        par_test,
-        signal_train,
-        signal_val,
-        signal_test,
-        latent_dim,
-        enc_hidden_dims,
-        dec_hidden_dims,
-        em_hidden_dims,
+        par_train=par_train,
+        par_val=par_val,
+        par_test=par_test,
+        signal_train=signal_train,
+        signal_val=signal_val,
+        signal_test=signal_test,
+        latent_dim=latent_dim,
+        enc_hidden_dims=[],
+        dec_hidden_dims=[],
+        em_hidden_dims=[],
         activation_func="relu",
         redshifts=redshifts,
         frequencies=None,
@@ -246,13 +259,35 @@ class AutoEncoderEmulator:
         self.signal_val = signal_val
         self.signal_test = signal_test
 
-        self.autoencoder = AutoEncoder(
+        self.par_labels = [
+            "fstar",
+            "Vc",
+            "fx",
+            "tau",
+            "alpha",
+            "nu_min",
+            "Rmfp"
+        ]
+
+        if frequencies is None:
+            if redshifts is not None:
+                frequencies = redshift2freq(redshifts)
+        elif redshifts is None:
+            redshifts = freq2redshift(frequencies)
+        self.redshifts = redshifts
+        self.frequencies = frequencies
+        
+        autoencoder = AutoEncoder(
             self.signal_train,
             enc_hidden_dims,
             dec_hidden_dims,
             latent_dim,
             activation_func,
         )
+
+        # build autoencoder by calling it on a batch of data
+        _ = autoencoder(pp.preproc(self.signal_test, self.signal_train))  
+        self.autoencoder = autoencoder
 
         self.emulator = gen_model(
             self.par_train.shape[-1],
@@ -268,7 +303,7 @@ class AutoEncoderEmulator:
         self,
         emulator_path=AE_PATH + "ae_emulator.h5",
         encoder_path=AE_PATH + "encoder.h5",
-        decoder_path=AE_PATH + "decder.h5",
+        decoder_path=AE_PATH + "decoder.h5",
     ):
         self.emulator = tf.keras.models.load_model(emulator_path)
         encoder = tf.keras.models.load_model(encoder_path)
@@ -276,6 +311,8 @@ class AutoEncoderEmulator:
         autoencoder = AutoEncoder(signal_train=self.signal_train)
         autoencoder.encoder = encoder
         autoencoder.decoder = decoder
+        # build autoencoder by calling it on a batch of data
+        _ = autoencoder(pp.preproc(self.signal_test, self.signal_train))  
         self.autoencoder = autoencoder
 
     def train(self, epochs, ae_callbacks=[], em_callbacks=[], verbose="tqdm"):
