@@ -132,7 +132,7 @@ class DirectEmulator:
             "tau",
             "alpha",
             "nu_min",
-            "Rmfp"
+            "Rmfp",
         ]
 
         self.emulator = gen_model(
@@ -231,8 +231,10 @@ class AutoEncoder(tf.keras.models.Model):
     def call(self, x):
         return self.decoder(self.encoder(x))
 
+
 # default parameters
 latent_dim = 9
+
 
 class AutoEncoderEmulator:
     def __init__(
@@ -266,7 +268,7 @@ class AutoEncoderEmulator:
             "tau",
             "alpha",
             "nu_min",
-            "Rmfp"
+            "Rmfp",
         ]
 
         if frequencies is None:
@@ -276,7 +278,7 @@ class AutoEncoderEmulator:
             redshifts = freq2redshift(frequencies)
         self.redshifts = redshifts
         self.frequencies = frequencies
-        
+
         autoencoder = AutoEncoder(
             self.signal_train,
             enc_hidden_dims,
@@ -286,7 +288,7 @@ class AutoEncoderEmulator:
         )
 
         # build autoencoder by calling it on a batch of data
-        _ = autoencoder(pp.preproc(self.signal_test, self.signal_train))  
+        _ = autoencoder(pp.preproc(self.signal_test, self.signal_train))
         self.autoencoder = autoencoder
 
         self.emulator = gen_model(
@@ -312,7 +314,7 @@ class AutoEncoderEmulator:
         autoencoder.encoder = encoder
         autoencoder.decoder = decoder
         # build autoencoder by calling it on a batch of data
-        _ = autoencoder(pp.preproc(self.signal_test, self.signal_train))  
+        _ = autoencoder(pp.preproc(self.signal_test, self.signal_train))
         self.autoencoder = autoencoder
 
     def train(self, epochs, ae_callbacks=[], em_callbacks=[], verbose="tqdm"):
