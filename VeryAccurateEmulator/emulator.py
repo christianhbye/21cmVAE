@@ -103,7 +103,6 @@ with h5py.File(PATH + "dataset_21cmVAE.h5") as hf:
     signal_test = hf["signal_test"][:]
 
 
-
 class DirectEmulator:
     def __init__(
         self,
