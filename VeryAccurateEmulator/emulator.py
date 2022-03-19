@@ -1,18 +1,22 @@
+import h5py
 import tensorflow as tf
 from tqdm.keras import TqdmCallback
 import numpy as np
 
+from VeryAccurateEmulator import __path__ 
 import VeryAccurateEmulator.preprocess as pp
 
+PATH = __path__[0] + "/"
 
 def gen_model(in_dim, hidden_dims, out_dim, activation_func, name=None):
     layers = []
     if in_dim is not None:
         input_layer = tf.keras.Input(shape=(in_dim,))
         layers.append(input_layer)
-    for dim in hidden_dims:
-        layer = tf.keras.layers.Dense(dim, activation=activation_func)
-        layers.append(layer)
+    if len(hidden_dims):
+        for dim in hidden_dims:
+            layer = tf.keras.layers.Dense(dim, activation=activation_func)
+            layers.append(layer)
     output_layer = tf.keras.layers.Dense(out_dim)
     layers.append(output_layer)
     model = tf.keras.Sequential(layers, name=name)
@@ -38,8 +42,8 @@ def relative_mse_loss(signal_train):
         return loss
     return loss_function
 
-NU_0 = 1420405751.7667  # Hz
 
+NU_0 = 1420405751.7667  # Hz, rest frequency of 21-cm line
 
 def redshift2freq(z):
     nu = NU_0 / (1 + z)
@@ -80,16 +84,27 @@ def error(
     return err
 
 
+# default parameters
+with h5py.File(PATH + "dataset_21cmVAE.h5") as hf:
+    par_train = hf["par_train"][:]
+    par_val = hf["par_val"][:]
+    par_test = hf["par_test"][:]
+    signal_train = hf["signal_train"][:]
+    signal_val = hf["signal_val"][:]
+    signal_test = hf["signal_test"][:]
+
+
+
 class DirectEmulator:
     def __init__(
         self,
-        par_train,
-        par_val,
-        par_test,
-        signal_train,
-        signal_val,
-        signal_test,
-        hidden_dims,
+        par_train=par_train,
+        par_val=par_val,
+        par_test_par_test,
+        signal_train=signal_train,
+        signal_val=signal_val,
+        signal_test=signal_test,
+        hidden_dims=[],
         activation_func="relu",
         redshifts=np.linspace(5, 50, num=451),
         frequencies=None,
@@ -118,6 +133,18 @@ class DirectEmulator:
             redshifts = freq2redshifts(frequencies)
         self.redshifts = redshifts
         self.frequencies = frequencies
+
+    def load_model(
+        self,
+        model_path=PATH+"models/emulator.h5",
+        custom_loss=relative_mse_loss(self.signal_train),
+    ):
+        custom_obj = {}
+        if custom_loss is not None:
+            custom_obj["loss_function"] = custom_loss
+        self.emulator = tf.keras.models.load_model(
+                model_path, custom_objects=custom_obj
+        )
 
     def train(self, epochs, callbacks=[], verbose="tqdm"):
         
@@ -162,15 +189,15 @@ class DirectEmulator:
             fhigh=fhigh,
         )
         return err
-# method to load from file
+
 
 class AutoEncoder(tf.keras.models.Model):
     def __init__(
         self,
-        signal_train,
-        enc_hidden_dims,
-        dec_hidden_dims,
-        latent_dim,
+        signal_train=signal_train,
+        enc_hidden_dims=[],
+        dec_hidden_dims=[],
+        latent_dim=9,
         activation_func="relu"
     ):
         super().__init__()
@@ -234,6 +261,22 @@ class AutoEncoderEmulator:
             activation_func,
             name="ae_emualtor",
         )
+
+    AE_PATH = PATH + "models/autoencoder_based_emulator/"
+    
+    def load_model(
+        self,
+        emulator_path=AE_PATH+"ae_emulator.h5",
+        encoder_path=AE_PATH+"encoder.h5",
+        decoder_path=AE_PATH+"decder.h5"
+    ):
+        self.emulator = tf.keras.models.load_model(emulator_path)
+        encoder = tf.keras.models.load_model(encoder_path)
+        decoder = tf.keras.models.load_model(decoder_path)
+        autoencoder = AutoEncoder(signal_train=self.signal_train)
+        autoencoder.encoder = encoder
+        autoencoder.decoder = decoder
+        self.autoencoder = autoencoder
 
 
     def train(self, epochs, ae_callbacks=[], em_callbacks=[], verbose="tqdm"):
