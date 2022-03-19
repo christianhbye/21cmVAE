@@ -92,6 +92,8 @@ def error(
 
 
 # default parameters
+hidden_dims = [288, 352, 288, 224]
+redshifts = np.linspace(5, 50, 451)
 with h5py.File(PATH + "dataset_21cmVAE.h5") as hf:
     par_train = hf["par_train"][:]
     par_val = hf["par_val"][:]
@@ -100,7 +102,6 @@ with h5py.File(PATH + "dataset_21cmVAE.h5") as hf:
     signal_val = hf["signal_val"][:]
     signal_test = hf["signal_test"][:]
 
-redshifts = np.linspace(5, 50, 451)
 
 
 class DirectEmulator:
@@ -112,7 +113,7 @@ class DirectEmulator:
         signal_train=signal_train,
         signal_val=signal_val,
         signal_test=signal_test,
-        hidden_dims=[],
+        hidden_dims=hidden_dims,
         activation_func="relu",
         redshifts=redshifts,
         frequencies=None,
@@ -234,6 +235,9 @@ class AutoEncoder(tf.keras.models.Model):
 
 # default parameters
 latent_dim = 9
+enc_hidden_dims = [352]
+dec_hidden_dims = [32, 352]
+em_hidden_dims = [352, 352, 352, 224]
 
 
 class AutoEncoderEmulator:
@@ -246,9 +250,9 @@ class AutoEncoderEmulator:
         signal_val=signal_val,
         signal_test=signal_test,
         latent_dim=latent_dim,
-        enc_hidden_dims=[],
-        dec_hidden_dims=[],
-        em_hidden_dims=[],
+        enc_hidden_dims=enc_hidden_dims,
+        dec_hidden_dims=dec_hidden_dims,
+        em_hidden_dims=em_hidden_dims,
         activation_func="relu",
         redshifts=redshifts,
         frequencies=None,
