@@ -3,10 +3,11 @@ import tensorflow as tf
 from tqdm.keras import TqdmCallback
 import numpy as np
 
-from VeryAccurateEmulator import __path__ 
+from VeryAccurateEmulator import __path__
 import VeryAccurateEmulator.preprocess as pp
 
 PATH = __path__[0] + "/"
+
 
 def gen_model(in_dim, hidden_dims, out_dim, activation_func, name=None):
     layers = []
@@ -22,6 +23,7 @@ def gen_model(in_dim, hidden_dims, out_dim, activation_func, name=None):
     model = tf.keras.Sequential(layers, name=name)
     return model
 
+
 def relative_mse_loss(signal_train):
     """
     The square of the FoM in the paper, in units of standard deviation
@@ -32,6 +34,7 @@ def relative_mse_loss(signal_train):
     :param y_pred: array, the predicted signal (by the emulator)
     :return: callable, the loss function
     """
+
     def loss_function(y_true, y_pred):
         # unpreproc signal to get the ampltiude
         signal = y_true + tf.convert_to_tensor(np.mean(signal_train, axis=0))
@@ -40,10 +43,12 @@ def relative_mse_loss(signal_train):
         loss = mse(y_pred, y_true)  # loss is mean squared error ...
         loss /= K.square(reduced_amp)  # ... divided by square of amplitude
         return loss
+
     return loss_function
 
 
 NU_0 = 1420405751.7667  # Hz, rest frequency of 21-cm line
+
 
 def redshift2freq(z):
     nu = NU_0 / (1 + z)
@@ -93,23 +98,24 @@ with h5py.File(PATH + "dataset_21cmVAE.h5") as hf:
     signal_val = hf["signal_val"][:]
     signal_test = hf["signal_test"][:]
 
-redshifts=np.lisnpace(5, 50, 451)
+redshifts = np.lisnpace(5, 50, 451)
+
 
 class DirectEmulator:
     def __init__(
         self,
         par_train=par_train,
         par_val=par_val,
-        par_test_par_test,
+        par_test=par_test,
         signal_train=signal_train,
         signal_val=signal_val,
         signal_test=signal_test,
         hidden_dims=[],
         activation_func="relu",
         redshifts=redshifts,
-        frequencies=None
+        frequencies=None,
     ):
-        
+
         self.par_train = par_train
         self.par_val = par_val
         self.par_test = par_test
@@ -125,7 +131,6 @@ class DirectEmulator:
             name="emulator",
         )
 
-
         if frequencies is None:
             if redshifts is not None:
                 frequencies = redshift2freq(redshifts)
@@ -136,23 +141,23 @@ class DirectEmulator:
 
     def load_model(
         self,
-        model_path=PATH+"models/emulator.h5",
+        model_path=PATH + "models/emulator.h5",
         custom_loss=relative_mse_loss(self.signal_train),
     ):
         custom_obj = {}
         if custom_loss is not None:
             custom_obj["loss_function"] = custom_loss
         self.emulator = tf.keras.models.load_model(
-                model_path, custom_objects=custom_obj
+            model_path, custom_objects=custom_obj
         )
 
     def train(self, epochs, callbacks=[], verbose="tqdm"):
-        
+
         X_train = pp.par_transform(self.par_train, self.par_train)
         X_val = pp.par_transform(self.par_val, self.par_train)
         y_train = pp.preproc(self.signal_train, self.signal_train)
         y_val = pp.preproc(self.signal_val, self.signal_train)
-        
+
         if verbose == "tqdm":
             callbakcs.append(TqdmCallback())
             verbose = 0
@@ -198,7 +203,7 @@ class AutoEncoder(tf.keras.models.Model):
         enc_hidden_dims=[],
         dec_hidden_dims=[],
         latent_dim=9,
-        activation_func="relu"
+        activation_func="relu",
     ):
         super().__init__()
         self.encoder = gen_model(
@@ -206,19 +211,20 @@ class AutoEncoder(tf.keras.models.Model):
             enc_hidden_dims,
             latent_dim,
             activation_func,
-            name="encoder"
+            name="encoder",
         )
-        
+
         self.decoder = gen_model(
             None,
             dec_hidden_dims,
             signal_train.shape[-1],
             activation_func,
-            name="decoder"
+            name="decoder",
         )
 
     def call(self, x):
         return self.decoder(self.enocder(x))
+
 
 class AutoEncoderEmulator:
     def __init__(
@@ -234,7 +240,7 @@ class AutoEncoderEmulator:
         dec_hidden_dims,
         em_hidden_dims,
         activation_func="relu",
-        redshifts=np.linspace(5, 50, num=451),
+        redshifts=redshifts,
         frequencies=None,
     ):
 
@@ -244,14 +250,13 @@ class AutoEncoderEmulator:
         self.signal_train = signal_train
         self.signal_val = signal_val
         self.signal_test = signal_test
-        
 
         self.autoencoder = AutoEncoder(
             self.signal_train,
             enc_hidden_dims,
             dec_hidden_dims,
             latent_dim,
-            activation_func
+            activation_func,
         )
 
         self.emulator = gen_model(
@@ -263,12 +268,12 @@ class AutoEncoderEmulator:
         )
 
     AE_PATH = PATH + "models/autoencoder_based_emulator/"
-    
+
     def load_model(
         self,
-        emulator_path=AE_PATH+"ae_emulator.h5",
-        encoder_path=AE_PATH+"encoder.h5",
-        decoder_path=AE_PATH+"decder.h5"
+        emulator_path=AE_PATH + "ae_emulator.h5",
+        encoder_path=AE_PATH + "encoder.h5",
+        decoder_path=AE_PATH + "decder.h5",
     ):
         self.emulator = tf.keras.models.load_model(emulator_path)
         encoder = tf.keras.models.load_model(encoder_path)
@@ -277,7 +282,6 @@ class AutoEncoderEmulator:
         autoencoder.encoder = encoder
         autoencoder.decoder = decoder
         self.autoencoder = autoencoder
-
 
     def train(self, epochs, ae_callbacks=[], em_callbacks=[], verbose="tqdm"):
 
@@ -295,7 +299,7 @@ class AutoEncoderEmulator:
             epochs=epochs,
             validation_data=(y_val, y_val),
             callbacks=ae_callbacks,
-            verbose=verbose
+            verbose=verbose,
         )
         ae_loss = hist.history["loss"]
         ae_val_loss = hist.history["val_loss"]
@@ -312,7 +316,7 @@ class AutoEncoderEmulator:
             epochs=epochs,
             validation_data=(X_val, y_val),
             callbacks=em_callbacks,
-            verbose=verbose
+            verbose=verbose,
         )
         loss = hist.history["loss"]
         val_loss = hist.history["val_loss"]
@@ -330,7 +334,7 @@ class AutoEncoderEmulator:
             return pred
 
     def test_error(
-        self, use_autoencoder=False,relative=True, flow=None, fhigh=None
+        self, use_autoencoder=False, relative=True, flow=None, fhigh=None
     ):
         if use_autoencoder:
             pred = self.autoencoder(self.par_test)
@@ -345,4 +349,3 @@ class AutoEncoderEmulator:
             fhigh=fhigh,
         )
         return err
-
