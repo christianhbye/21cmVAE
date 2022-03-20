@@ -57,7 +57,7 @@ def relative_mse_loss(signal_train):
     ----------
     signal_train : np.ndarray
         Training signals.
-    
+
     Returns
     -------
     loss_function : callable
@@ -157,7 +157,7 @@ def error(
     ------
     ValueError :
         If nu_arr is None and flow or fhigh are not None.
-    
+
     """
     if (flow or fhigh) and nu_arr is None:
         raise ValueError(
@@ -319,7 +319,7 @@ class DirectEmulator:
         ----------
         model_path : str
             The path to the saved model.
-        
+
         Raises
         ------
         IOError : if model_path does not point to a valid model.
@@ -518,6 +518,7 @@ enc_hidden_dims = [352]
 dec_hidden_dims = [32, 352]
 em_hidden_dims = [352, 352, 352, 224]
 
+
 class AutoEncoderEmulator:
     def __init__(
         self,
@@ -538,7 +539,7 @@ class AutoEncoderEmulator:
         """
 
         The autoencoder-based emulator class. This class provides the user
-        interface for building, training, and using an autoencoder-based 
+        interface for building, training, and using an autoencoder-based
         emulator, as described in Appendix A of the paper.
 
         The default parameters are the ones used in Appendix A.
@@ -675,7 +676,7 @@ class AutoEncoderEmulator:
             The path to the saved encoder.
         decoder_path : str
             The path to the saved decoder.
-        
+
         Raises
         ------
         IOError : if model_path does not point to a valid model.
