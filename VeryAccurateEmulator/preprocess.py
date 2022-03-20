@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def preproc(signal, signal_train):
+def preproc(signal: np.ndarray, signal_train: np.ndarray) -> np.ndarray:
     """
     Preprocess all the signals in a dataset.
 
@@ -24,7 +24,7 @@ def preproc(signal, signal_train):
     return proc_signal
 
 
-def unpreproc(signal, signal_train):
+def unpreproc(signal: np.ndarray, signal_train: np.ndarray) -> np.ndarray:
     """
     Inverse of preproc function.
 
@@ -46,7 +46,9 @@ def unpreproc(signal, signal_train):
     return unproc_signal
 
 
-def par_transform(parameters, params_train):
+def par_transform(
+    parameters: np.ndarray, params_train: np.ndarray
+) -> np.ndarray:
     """
     Preprocess a set of parameters the same way that the training
     set parameters are processed:
