@@ -12,8 +12,8 @@ with h5py.File(FILE, "r") as hf:
 def test_proc():
     proc_signal = pp.preproc(signal_train, signal_train)
     mean = np.mean(proc_signal, axis=0)
-    assert np.allclose(mean, np.zeros_like(mean))
-    assert np.isclose(np.std(proc_signal), 0)
+    assert np.allclose(mean, np.zeros_like(mean), atol=1e-3)
+    assert np.isclose(np.std(proc_signal), 1)
 
     unproc = pp.unpreproc(proc_signal, signal_train)
     assert np.allclose(unproc, signal_train)
@@ -24,4 +24,4 @@ def test_par_transform():
     max_par = transformed.max(axis=0)
     min_par = transformed.min(axis=0)
     assert np.allclose(max_par, np.ones_like(max_par))
-    assert np.allcose(min_par, -1 * np.ones_like(min_par))
+    assert np.allclose(min_par, -1 * np.ones_like(min_par))
