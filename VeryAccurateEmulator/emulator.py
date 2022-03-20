@@ -442,6 +442,37 @@ class AutoEncoder(tf.keras.models.Model):
         latent_dim=9,
         activation_func="relu",
     ):
+        """
+        Helper class that controls the autoencoder for the autoencoder-based
+        emulator.
+
+        Parameters
+        ----------
+        signal_train : np.ndarray
+             The signals in the training set. Default : the signals defined in
+             the file "dataset_21cmVAE.h5", used by 21cmVAE
+        enc_hidden_dims : list of ints
+            The dimensions of the hidden layers of the encoder. Default : []
+        dec_hidden_dims : list of ints
+            The dimensions of the hidden layers of the decoder. Default : []
+        latent_dim : int
+            The dimension of the latent layer. Default : 9
+        activation_func: str or instance of tf.keras.activations
+            Activation function between hidden layers. Must be recognizable by
+            keras. Default : "relu"
+
+        Attributes
+        ----------
+        encoder : tf.keras.Model
+            The encoder of the autoencoder.
+        decoder : tf.keras.Model
+            The decoder of the autoencoder.
+
+        Methods
+        -------
+        call : use the autoencoder to reconstruct the input.
+
+        """
         super().__init__()
         self.encoder = _gen_model(
             signal_train.shape[-1],
@@ -459,8 +490,23 @@ class AutoEncoder(tf.keras.models.Model):
             name="decoder",
         )
 
-    def call(self, x):
-        return self.decoder(self.encoder(x))
+    def call(self, signals):
+        """
+        Reconstruct the given input with the autoencoder.
+
+        Parameters
+        ----------
+        x : np.ndarray
+            The signals to reconstruct with the autoencoder.
+
+        Returns
+        -------
+        reconstructed : np.ndarray
+            The reconstructed signals.
+
+        """
+        reconstructed = self.decoder(self.encoder(signals))
+        return reconstructed
 
 
 # default parameters
@@ -469,7 +515,7 @@ enc_hidden_dims = [352]
 dec_hidden_dims = [32, 352]
 em_hidden_dims = [352, 352, 352, 224]
 
-
+# XXX
 class AutoEncoderEmulator:
     def __init__(
         self,
@@ -487,6 +533,69 @@ class AutoEncoderEmulator:
         redshifts=redshifts,
         frequencies=None,
     ):
+        """
+
+        The direct emulator class. This class provides the user interface for
+        building, training, and using a Direct Emulator such as 21cmVAE.
+
+        The default parameters are the ones used by 21cmVAE.
+
+        Parameters
+        ----------
+        par_train : np.ndarray
+            Parameters in training set.
+        par_val : np.ndarray
+            Parameters in validation set.
+        par_test : np.ndarray
+            Parameters in test set.
+        signal_train : np.ndarray
+            Signals in training set.
+        signal_val : np.ndarray
+            Signals in validation set.
+        signal_test : np.ndarray
+            Signals in test set.
+        hidden_dims : list of ints
+            List of dimensions of the hidden layers. Should be an empty list
+            if there are no hidden layers.
+        activation_func: str or instance of tf.keras.activations
+            Activation function between hidden layers. Must be recognizable by
+            keras.
+        redshifts : np.ndarray or None
+            Array of redshifts corresponding to the signals used.
+        frequencies : np.ndarray or None
+            Array of frequencies corresponding to the signals used.
+
+        Attributes
+        ----------
+        par_train : np.ndarray
+            Parameters in training set.
+        par_val : np.ndarray
+            Parameters in validation set.
+        par_test : np.ndarray
+            Parameters in test set.
+        signal_train : np.ndarray
+            Signals in training set.
+        signal_val : np.ndarray
+            Signals in validation set.
+        signal_test : np.ndarray
+            Signals in test set.
+        emulator : tf.keras.Model
+            The emulator.
+        redshifts : np.ndarray or None
+            Array of redshifts corresponding to the signals used.
+        frequencies : np.ndarray or None
+            Array of frequencies corresponding to the signals used.
+
+        Methods
+        -------
+        load_model : load an exsisting model.
+        train : train the emulator.
+        predict : use the emulator to predict global signals from astrophysical
+        input parameters
+        test_error : compute the test set error of the emulator.
+        save : save the class instance with all attributes.
+
+        """
 
         self.par_train = par_train
         self.par_val = par_val
