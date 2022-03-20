@@ -257,6 +257,8 @@ class DirectEmulator:
             Signals in validation set.
         signal_test : np.ndarray
             Signals in test set.
+        par_labels : list of str
+            The names of the astrophysical parameters.
         emulator : tf.keras.Model
             The emulator.
         redshifts : np.ndarray or None
@@ -310,7 +312,8 @@ class DirectEmulator:
 
     def load_model(self, model_path=PATH + "models/emulator.h5"):
         """
-        Load a saved model.
+        Load a saved model. The default parameter is the path to the saved
+        state of 21cmVAE as described in the paper.
 
         Parameters
         ----------
@@ -515,7 +518,6 @@ enc_hidden_dims = [352]
 dec_hidden_dims = [32, 352]
 em_hidden_dims = [352, 352, 352, 224]
 
-# XXX
 class AutoEncoderEmulator:
     def __init__(
         self,
@@ -535,10 +537,11 @@ class AutoEncoderEmulator:
     ):
         """
 
-        The direct emulator class. This class provides the user interface for
-        building, training, and using a Direct Emulator such as 21cmVAE.
+        The autoencoder-based emulator class. This class provides the user
+        interface for building, training, and using an autoencoder-based 
+        emulator, as described in Appendix A of the paper.
 
-        The default parameters are the ones used by 21cmVAE.
+        The default parameters are the ones used in Appendix A.
 
         Parameters
         ----------
@@ -554,9 +557,14 @@ class AutoEncoderEmulator:
             Signals in validation set.
         signal_test : np.ndarray
             Signals in test set.
-        hidden_dims : list of ints
-            List of dimensions of the hidden layers. Should be an empty list
-            if there are no hidden layers.
+        latent_dim : int
+            The dimension of the latent layer.
+        enc_hidden_dims : list of ints
+            The dimensions of the hidden layers of the encoder.
+        dec_hidden_dims : list of ints
+            The dimensions of the hidden layers of the decoder.
+        em_hidden_dims : list of ints
+            The dimensions of the hidden layers of the emulator.
         activation_func: str or instance of tf.keras.activations
             Activation function between hidden layers. Must be recognizable by
             keras.
@@ -579,6 +587,10 @@ class AutoEncoderEmulator:
             Signals in validation set.
         signal_test : np.ndarray
             Signals in test set.
+        par_labels : list of str
+            The names of the astrophysical parameters.
+        autoencoder : AutoEncoder
+            An instance of the AutoEncoder class defined in this module.
         emulator : tf.keras.Model
             The emulator.
         redshifts : np.ndarray or None
@@ -589,10 +601,11 @@ class AutoEncoderEmulator:
         Methods
         -------
         load_model : load an exsisting model.
-        train : train the emulator.
-        predict : use the emulator to predict global signals from astrophysical
-        input parameters
-        test_error : compute the test set error of the emulator.
+        train : train the autoencoder and the emulator.
+        predict : use the emulator and decoder to predict global signals from
+        astrophysical input parameters
+        test_error : compute the test set error of the autoencoder or the
+        autoencider-based emulator.
         save : save the class instance with all attributes.
 
         """
@@ -650,6 +663,24 @@ class AutoEncoderEmulator:
         encoder_path=AE_PATH + "encoder.h5",
         decoder_path=AE_PATH + "decoder.h5",
     ):
+        """
+        Load a saved model. Default parameters are the paths to the models used
+        in Appendix A of the paper.
+
+        Parameters
+        ----------
+        emulator_path : str
+            The path to the saved emulator.
+        encoder_path : str
+            The path to the saved encoder.
+        decoder_path : str
+            The path to the saved decoder.
+        
+        Raises
+        ------
+        IOError : if model_path does not point to a valid model.
+
+        """
         self.emulator = tf.keras.models.load_model(emulator_path)
         encoder = tf.keras.models.load_model(encoder_path)
         decoder = tf.keras.models.load_model(decoder_path)
@@ -661,6 +692,35 @@ class AutoEncoderEmulator:
         self.autoencoder = autoencoder
 
     def train(self, epochs, ae_callbacks=[], em_callbacks=[], verbose="tqdm"):
+        """
+        Train the autoencoder and the emulator.
+
+        Parameters
+        ----------
+        epochs : int
+            Number of epochs to train for.
+        ae_callbacks : list of tf.keras.callbacks.Callback
+            Callbacks to pass to the training method of the autoencoder.
+            Default : []
+        em_callbacks : list of tf.keras.callbacks.Callback
+            Callbacks to pass to the training method of the emulator.
+            Default : []
+        verbose : 0, 1, 2, or "tqdm"
+            Verbosity mode. 0 = silent, 1 = progress bar, 2 = one line per
+            epoch, "tqdm" = use progress bar from tqdm. Default : "tqdm"
+
+        Returns
+        -------
+        ae_loss : list of floats
+           Training set losses for the autoencoder.
+        ae_val_loss : list of floats
+           Validation set losses for the autoencoder.
+        loss : list of floats
+           Training set losses for the emulator.
+        val_loss : list of floats
+           Validation set losses for the emulator.
+
+        """
 
         y_train = pp.preproc(self.signal_train, self.signal_train)
         y_val = pp.preproc(self.signal_val, self.signal_train)
@@ -701,6 +761,23 @@ class AutoEncoderEmulator:
         return ae_loss, ae_val_loss, loss, val_loss
 
     def predict(self, params):
+        """
+        Predict a (set of) global signal(s) from astrophysical parameters.
+
+        Parameters
+        ----------
+        params : np.ndarray
+            The values of the astrophysical parameters. Must be in the order
+            given by the attrbiute par_labels. To predict a set of global
+            signals, input a 2d-array where each row correspond to a different
+            set of parameters.
+
+        Returns
+        -------
+        pred : np.ndarray
+           The predicted global signal(s).
+
+        """
         transformed_params = pp.par_transform(params, self.par_train)
         em_pred = self.emulator.predict(transformed_params)
         decoded = self.autoencoder.decoder.predict(em_pred)
@@ -711,6 +788,31 @@ class AutoEncoderEmulator:
             return pred
 
     def test_error(
+        """
+        Compute the error of the autoencoder or the autoencoder-based emulator
+        for each signal in the test set.
+
+        Parameters
+        ----------
+        use_auteoncoder : bool
+            Compute the errors of the autoencoder (True) or the emulator
+            (False). Default : False
+        relative : bool
+            Whether to compute the error in % relative to the signal amplitude
+            (True) or in mK (False). Default : True.
+        flow : float or None
+            The lower bound of the frequency band to compute the error in.
+            Default : None.
+        fhigh : float or None
+            The upper bound of the frequency bnd to compute the error in.
+            Default : None.
+
+        Returns
+        -------
+        err : np.ndarray
+            The computed errors.
+
+        """
         self, use_autoencoder=False, relative=True, flow=None, fhigh=None
     ):
         if use_autoencoder:
