@@ -1,8 +1,8 @@
 __version__ = "3.0.0"
 __author__ = "Christian Hellum Bye"
 
-from . import emulator
-from . import preprocess
+from VeryAccurateEmulator import emulator
+from VeryAccurateEmulator import preprocess
 
 from pathlib import Path
 
