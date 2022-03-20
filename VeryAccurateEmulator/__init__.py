@@ -1,8 +1,6 @@
 __version__ = "3.0.0"
 __author__ = "Christian Hellum Bye"
 
-from VeryAccurateEmulator import emulator
-from VeryAccurateEmulator import preprocess
 
 from pathlib import Path
 
@@ -16,3 +14,6 @@ if not Path(HERE + "dataset_21cmVAE.h5").exists():
     )
     with open(HERE + "dataset_21cmVAE.h5", "wb") as f:
         f.write(r.content)
+
+from VeryAccurateEmulator import emulator
+from VeryAccurateEmulator import preprocess
