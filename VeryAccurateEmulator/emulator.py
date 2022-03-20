@@ -788,6 +788,8 @@ class AutoEncoderEmulator:
             return pred
 
     def test_error(
+        self, use_autoencoder=False, relative=True, flow=None, fhigh=None
+    ):
         """
         Compute the error of the autoencoder or the autoencoder-based emulator
         for each signal in the test set.
@@ -813,8 +815,6 @@ class AutoEncoderEmulator:
             The computed errors.
 
         """
-        self, use_autoencoder=False, relative=True, flow=None, fhigh=None
-    ):
         if use_autoencoder:
             pred = self.autoencoder(self.par_test)
         else:
