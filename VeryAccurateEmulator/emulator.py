@@ -212,6 +212,68 @@ class DirectEmulator:
         redshifts=redshifts,
         frequencies=None,
     ):
+        """
+        The direct emulator class. This class provides the user interface for
+        building, training, and using a Direct Emulator such as 21cmVAE.
+
+        The default parameters are the ones used by 21cmVAE.
+
+        Parameters
+        ----------
+        par_train : np.ndarray
+            Parameters in training set.
+        par_val : np.ndarray
+            Parameters in validation set.
+        par_test : np.ndarray
+            Parameters in test set.
+        signal_train : np.ndarray
+            Signals in training set.
+        signal_val : np.ndarray
+            Signals in validation set.
+        signal_test : np.ndarray
+            Signals in test set.
+        hidden_dims : list of ints
+            List of dimensions of the hidden layers. Should be an empty list
+            if there are no hidden layers.
+        activation_func: str or instance of tf.keras.activations
+            Activation function between hidden layers. Must be recognizable by
+            keras.
+        redshifts : np.ndarray or None
+            Array of redshifts corresponding to the signals used.
+        frequencies : np.ndarray or None
+            Array of frequencies corresponding to the signals used.
+
+        Attributes
+        ----------
+        par_train : np.ndarray
+            Parameters in training set.
+        par_val : np.ndarray
+            Parameters in validation set.
+        par_test : np.ndarray
+            Parameters in test set.
+        signal_train : np.ndarray
+            Signals in training set.
+        signal_val : np.ndarray
+            Signals in validation set.
+        signal_test : np.ndarray
+            Signals in test set.
+        emulator : tf.keras.Model
+            The emulator.
+        redshifts : np.ndarray or None
+            Array of redshifts corresponding to the signals used.
+        frequencies : np.ndarray or None
+            Array of frequencies corresponding to the signals used.
+
+        Methods
+        -------
+        load_model : load an exsisting model.
+        train : train the emulator.
+        predict : use the emulator to predict global signals from astrophysical
+        input parameters
+        test_error : compute the test set error of the emulator.
+        save : save the class instance with all attributes.
+
+        """
 
         self.par_train = par_train
         self.par_val = par_val
@@ -247,13 +309,46 @@ class DirectEmulator:
         self.frequencies = frequencies
 
     def load_model(self, model_path=PATH + "models/emulator.h5"):
+        """
+        Load a saved model.
+
+        Parameters
+        ----------
+        model_path : str
+            The path to the saved model.
+        
+        Raises
+        ------
+        IOError : if model_path does not point to a valid model.
+
+        """
         custom_obj = {"loss_function": relative_mse_loss(self.signal_train)}
         self.emulator = tf.keras.models.load_model(
             model_path, custom_objects=custom_obj
         )
 
     def train(self, epochs, callbacks=[], verbose="tqdm"):
+        """
+        Train the emulator.
 
+        Parameters
+        ----------
+        epochs : int
+            Number of epochs to train for.
+        callbacks : list of tf.keras.callbacks.Callback
+            Callbacks to pass to the training loop. Default : []
+        verbose : 0, 1, 2, or "tqdm"
+            Verbosity mode. 0 = silent, 1 = progress bar, 2 = one line per
+            epoch, "tqdm" = use progress bar from tqdm. Default : "tqdm"
+
+        Returns
+        -------
+        loss : list of floats
+           Training set losses.
+        val_loss : list of floats
+           Validation set losses.
+
+        """
         X_train = pp.par_transform(self.par_train, self.par_train)
         X_val = pp.par_transform(self.par_val, self.par_train)
         y_train = pp.preproc(self.signal_train, self.signal_train)
@@ -277,6 +372,23 @@ class DirectEmulator:
         return loss, val_loss
 
     def predict(self, params):
+        """
+        Predict a (set of) global signal(s) from astrophysical parameters.
+
+        Parameters
+        ----------
+        params : np.ndarray
+            The values of the astrophysical parameters. Must be in the order
+            given by the attrbiute par_labels. To predict a set of global
+            signals, input a 2d-array where each row correspond to a different
+            set of parameters.
+
+        Returns
+        -------
+        pred : np.ndarray
+           The predicted global signal(s).
+
+        """
         transformed_params = pp.par_transform(params, self.par_train)
         proc_pred = self.emulator.predict(transformed_params)
         pred = pp.unpreproc(proc_pred, self.signal_train)
@@ -286,6 +398,27 @@ class DirectEmulator:
             return pred
 
     def test_error(self, relative=True, flow=None, fhigh=None):
+        """
+        Compute the error of the emulator for each signal in the test set.
+
+        Parameters
+        ----------
+        relative : bool
+            Whether to compute the error in % relative to the signal amplitude
+            (True) or in mK (False). Default : True.
+        flow : float or None
+            The lower bound of the frequency band to compute the error in.
+            Default : None.
+        fhigh : float or None
+            The upper bound of the frequency bnd to compute the error in.
+            Default : None.
+
+        Returns
+        -------
+        err : np.ndarray
+            The computed errors.
+
+        """
         err = error(
             self.signal_test,
             self.predict(self.par_test),
@@ -295,6 +428,9 @@ class DirectEmulator:
             fhigh=fhigh,
         )
         return err
+
+    def save(self):
+        raise NotImplementedError("Not implemented yet.")
 
 
 class AutoEncoder(tf.keras.models.Model):
