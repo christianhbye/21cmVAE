@@ -11,7 +11,7 @@ def preproc(signal, signal_train):
         Array of signals to preprocess.
     signal_train : np.ndarray
         Array of the training set signals.
-    
+
     Returns
     -------
     proc_signal : np.ndarray
@@ -71,15 +71,17 @@ def par_transform(parameters, params_train):
     # first copy the parameters and take log of first three
     cols12 = parameters[:, :2].copy()  # fstar and Vc
     fx = parameters[:, 2].copy()  # fx
-    fx[fx == 0] = 10**(-6)  # to avoid -inf in cases where fx == 0
+    fx[fx == 0] = 10 ** (-6)  # to avoid -inf in cases where fx == 0
     newcols12 = np.log10(cols12)  # log of fstar and Vc
     newfx = np.log10(fx)  # log of fx
 
     # initialize arrays with processed parameters:
-    newparams = np.empty(parameters.shape)  
+    newparams = np.empty(parameters.shape)
     newparams[:, :2] = newcols12  # copy the log of fstar and Vc
     newparams[:, 2] = newfx  # the log of fx
-    newparams[:, 3:] = parameters[:, 3:].copy()  # copy the remaining parameters
+    newparams[:, 3:] = parameters[
+        :, 3:
+    ].copy()  # copy the remaining parameters
 
     # do the same for the training params
     cols12_tr = params_train[:, :2].copy()  # fstar and Vc
@@ -99,7 +101,7 @@ def par_transform(parameters, params_train):
     # subtract min, divide by (max-min), multiply by 2 and subtract 1 to get
     # parameters in the range [-1, 1] for the case of the training set
     newparams -= minimum  # subtract min to get the range [0, max-min]
-    newparams /= (maximum - minimum)  # divide by (max-min) to get [0, 1]
+    newparams /= maximum - minimum  # divide by (max-min) to get [0, 1]
     newparams *= 2
     newparams -= 1  # multiply by 2, subtract 1 to get [-1, 1]
 
