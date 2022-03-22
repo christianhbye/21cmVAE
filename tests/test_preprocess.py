@@ -13,10 +13,9 @@ def test_proc():
     proc_signal = pp.preproc(signal_train, signal_train)
     mean = np.mean(proc_signal, axis=0)
     assert np.allclose(mean, np.zeros_like(mean), atol=1e-3)
-    assert np.isclose(np.std(proc_signal), 1)
 
     unproc = pp.unpreproc(proc_signal, signal_train)
-    assert np.allclose(unproc, signal_train)
+    assert np.allclose(unproc, signal_train, atol=5e-5)
 
 
 def test_par_transform():
