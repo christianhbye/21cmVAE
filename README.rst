@@ -6,7 +6,7 @@
 Very Accurate Emulator
 **********************
 
-Very Accurate Emulator (21cmVAE) is an emulator of the 21-cm global signal. Given an input of seven astrophyscial parameters, it directly computes realizations of the global signal across redshifts 5-50. The emulator is described in detail in `Bye et. al, 2022 <https://arxiv.org/abs/2107.05581>`__.
+Very Accurate Emulator (21cmVAE) is an emulator of the 21-cm global signal. Given an input of seven astrophyscial parameters, it directly computes realizations of the global signal across redshifts 5-50. The emulator is described in detail in `Bye et. al, 2021 <https://arxiv.org/abs/2107.05581>`__.
 
 21cmVAE emulates global signals with an average error of 0.34% of the signal amplitude (equivalently 0.54 mK) with a run time of 40 ms on average. It is trained on ~30,000 cases, the same training set as the other exisiting emulators `21cmGEM <https://ui.adsabs.harvard.edu/abs/2020MNRAS.495.4845C/abstract>`_ and `globalemu <https://ui.adsabs.harvard.edu/abs/2021MNRAS.508.2923B/abstract>`_. The accuracy and speed makes 21cmVAE a possible tool for parameter fitting, using samplig techinques like MCMC. Moreover, the variational autoencoder approach creates an interpretable latent space that allows us to determine the relative importance of the model parameters on the global 21-cm signal. 
 
