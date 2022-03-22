@@ -27,8 +27,8 @@ def test_relative_mse_loss():
     y_pred = tf.convert_to_tensor(pp.preproc(signal_train[-10:], signal_train))
     mse = tf.keras.metrics.mean_squared_error(y_true, y_pred)
     amplitude = tf.convert_to_tensor(
-            np.max(np.abs(signal_train[:10]/np.std(signal_train)), axis=1)
-            )
+        np.max(np.abs(signal_train[:10] / np.std(signal_train)), axis=1)
+    )
     rel_mse = mse / tf.keras.backend.square(amplitude)
     assert tf.experimental.numpy.allclose(rel_mse, loss_fcn(y_true, y_pred))
 
