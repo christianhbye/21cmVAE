@@ -9,3 +9,4 @@ VeryAccurateEmulator.egg-info/
 notebooks/train_many_ae.ipynb
 paper/
 unfinished-tests/
+VeryAccurateEmulator/hyperparameter_tuner.py
