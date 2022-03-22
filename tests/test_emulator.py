@@ -23,18 +23,14 @@ def test_gen_model():
 
 def test_relative_mse_loss():
     loss_fcn = emulator.relative_mse_loss(signal_train)
-    y_true = pp.preproc(signal_train[42], signal_train)
-    amplitude = np.max(np.abs(signal_train[42]))
-    amplitude_proc = pp.preproc(amplitude, signal_train)
-    y_pred = pp.preproc(signal_train[123], signal_train)
+    y_true = tf.convert_to_tensor(pp.preproc(signal_train[:10], signal_train))
+    y_pred = tf.convert_to_tensor(pp.preproc(signal_train[-10:], signal_train))
     mse = tf.keras.metrics.mean_squared_error(y_true, y_pred)
-    rel_mse = np.mean(mse.numpy()) / amplitude_proc**2
-    assert np.allclose(
-        rel_mse,
-        loss_fcn(
-            np.expand_dims(y_true, axis=0), np.expand_dims(y_pred, axis=0)
-        ).numpy()
-    )
+    amplitude = tf.convert_to_tensor(
+            np.max(np.abs(signal_train[:10]/np.std(signal_train)), axis=1)
+            )
+    rel_mse = mse / tf.keras.backend.square(amplitude)
+    assert tf.experimental.numpy.allclose(rel_mse, loss_fcn(y_true, y_pred))
 
 
 def test_z_nu():

@@ -62,15 +62,19 @@ def relative_mse_loss(signal_train):
     -------
     loss_function : callable
         The loss function.
+
     """
 
     def loss_function(y_true, y_pred):
-        # unpreproc signal to get the ampltiude
-        signal = y_true + tf.convert_to_tensor(np.mean(signal_train, axis=0))
+        # unpreproc signal to get the amplitude
+        mean = tf.convert_to_tensor(
+                np.mean(signal_train, axis=0)/np.std(signal_train)
+                )
+        signal = y_true + mean
         # get amplitude in units of standard deviation of signals
-        reduced_amp = tf.math.reduce_max(tf.abs(signal), axis=1, keepdims=True)
+        reduced_amp = tf.math.reduce_max(tf.abs(signal), axis=1, keepdims=False)
         # loss is mse / square of amplitude
-        loss = tf.keras.metrics.mean_squared_error(y_pred, y_true)
+        loss = tf.keras.metrics.mean_squared_error(y_true, y_pred)
         loss /= tf.keras.backend.square(reduced_amp)
         return loss
 
