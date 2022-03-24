@@ -35,7 +35,7 @@ For development, please install with :code:`python -m pip install .[dev]` to get
 
 Versioning
 ##########
-21cmVAE uses `semantic versoning <https://semver.org/`_.
+21cmVAE uses `semantic versoning <https://semver.org/>`_.
 
 Contributions
 #############
