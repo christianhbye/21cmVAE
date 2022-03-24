@@ -651,7 +651,7 @@ class AutoEncoderEmulator:
         )
 
         # build autoencoder by calling it on a batch of data
-        _ = autoencoder(pp.preproc(self.signal_test, self.signal_train))
+        autoencoder.build((None, self.signal_train.shape[-1]))
         self.autoencoder = autoencoder
 
         self.emulator = _gen_model(
@@ -823,7 +823,12 @@ class AutoEncoderEmulator:
 
         """
         if use_autoencoder:
-            pred = self.autoencoder(self.par_test)
+            pred = pp.unpreproc(
+                    self.autoencoder(
+                        pp.preproc(self.signal_test, self.signal_train)
+                    ),
+                    self.signal_train
+                    )
         else:
             pred = self.predict(self.par_test)
         err = error(
