@@ -9,9 +9,9 @@ line-length = 79
 legacy_tox_ini = """
 [tox]
 isolated_build=true
-envlist = py38
+envlist = py36, py37, py38, py39
 
 [testenv]
-deps = pytest
+deps = -rrequirements.txt
 commands = pytest tests/
 """
