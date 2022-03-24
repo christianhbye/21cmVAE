@@ -12,7 +12,7 @@ Very Accurate Emulator (21cmVAE) is an emulator of the 21-cm global signal. Give
 
 21cmVAE is free to use on the MIT open source license. We provide here our best pretrained model, as well as code to modify and train new models. We also provide the code used for the hyperparameter tuner and code to run and train the direct emulator. We refer to the sample notebooks for an introduction on how to run and test the pretrained model, as well as how to train new models. 
 
-Questions and comments are welcome; please e-mail me at chbye@berkeley.edu. If you use this work for academic purposes, please cite `Bye et. al, 2021 <https://arxiv.org/abs/2107.05581>`__ and link to this repository.
+Questions and comments are welcome; please e-mail me at chb@berkeley.edu. If you use this work for academic purposes, please cite `Bye et. al, 2021 <https://arxiv.org/abs/2107.05581>`__ and link to this repository.
 
 Set-up
 ######
