@@ -19,7 +19,7 @@ Set-up
 
 Dependencies: python>=3.8, tensorflow>=2.5, h5py, jupyter, matplotlib, numpy, tqdm
 
-For developing: black, flake8, pytest
+For developing: black, flake8, pytest, tox
 
 To install 21cmVAE in a `virtual environment <https://docs.python.org/3/library/venv.html>`_ (recommended) with all required dependencies, do:
 
@@ -32,6 +32,10 @@ To install 21cmVAE in a `virtual environment <https://docs.python.org/3/library/
    python -m pip install .
 
 For development, please install with :code:`python -m pip install .[dev]` to get the extra dependencies.
+
+Versioning
+##########
+21cmVAE uses `semantic versoning <https://semver.org/`_.
 
 Contributions
 #############
