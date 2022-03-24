@@ -17,7 +17,7 @@ Questions and comments are welcome; please e-mail me at chbye@berkeley.edu. If y
 Set-up
 ######
 
-Dependencies: python>=3.8, tensorflow>=2.5, h5py, jupyter, matplotlib, numpy, tqdm
+Dependencies: python>=3.6, tensorflow>=2.5, h5py, jupyter, matplotlib, numpy, tqdm
 
 For developing: black, flake8, pytest, tox
 
