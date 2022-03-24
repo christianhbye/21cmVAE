@@ -45,3 +45,31 @@ def test_error():
     assert np.allclose(
         emulator.error(signal_train, signal_train), np.zeros(len(signal_train))
     )
+
+# direct emulator class
+direm = emulator.DirectEmulator()
+direm.load_model()
+def test_predict():
+    # some random parameters:
+    pars = direm.par_test[0]
+    pred = direm.predict(pars)
+    true = direm.signal_test[0]
+    assert pred.shape == true.shape
+    # the emulator has a max error of 1.84 %
+    assert np.sqrt(np.mean((pred-true)**2))/np.max(np.abs(true)) < 0.02
+
+    # vectorized call
+    pars = direm.par_test[:10]
+    pred_signals = direm.predict(pars)
+    assert pred_signals[0].shape == pred.shape
+    assert np.allclose(pred_signals[0], pred, atol=5e-5)
+    assert pred_signals.shape == (10, true.shape[0])
+    
+def test_test_error():
+    err = direm.test_error()
+    assert err.shape == (direm.signal_test.shape[0],)
+    # compare to table 1 in Bye et al. (2021)
+    assert np.allclose(err.mean(), 0.34, atol=1e-2)
+    assert np.allclose(np.median(err), 0.29, atol=1e-2)
+
+
