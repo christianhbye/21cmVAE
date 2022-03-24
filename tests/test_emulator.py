@@ -46,9 +46,12 @@ def test_error():
         emulator.error(signal_train, signal_train), np.zeros(len(signal_train))
     )
 
+
 # direct emulator class
 direm = emulator.DirectEmulator()
 direm.load_model()
+
+
 def test_predict():
     # some random parameters:
     pars = direm.par_test[0]
@@ -56,7 +59,7 @@ def test_predict():
     true = direm.signal_test[0]
     assert pred.shape == true.shape
     # the emulator has a max error of 1.84 %
-    assert np.sqrt(np.mean((pred-true)**2))/np.max(np.abs(true)) < 0.02
+    assert np.sqrt(np.mean((pred - true) ** 2)) / np.max(np.abs(true)) < 0.02
 
     # vectorized call
     pars = direm.par_test[:10]
@@ -64,7 +67,8 @@ def test_predict():
     assert pred_signals[0].shape == pred.shape
     assert np.allclose(pred_signals[0], pred, atol=5e-5)
     assert pred_signals.shape == (10, true.shape[0])
-    
+
+
 def test_test_error():
     err = direm.test_error()
     assert err.shape == (direm.signal_test.shape[0],)
@@ -75,9 +79,12 @@ def test_test_error():
     assert np.allclose(err_mk.mean(), 0.54, atol=1e-2)
     assert np.allclose(np.median(err_mk), 0.50, atol=1e-2)
 
+
 # autoencoder-based emulator class
 ae_em = emulator.AutoEncoderEmulator()
 ae_em.load_model()
+
+
 def test_predict_ae():
     # some random parameters:
     pars = ae_em.par_test[0]
@@ -85,7 +92,7 @@ def test_predict_ae():
     true = ae_em.signal_test[0]
     assert pred.shape == true.shape
     # error should be less than 5 % in all cases
-    assert np.sqrt(np.mean((pred-true)**2))/np.max(np.abs(true)) < 0.05
+    assert np.sqrt(np.mean((pred - true) ** 2)) / np.max(np.abs(true)) < 0.05
 
     # vectorized call
     pars = ae_em.par_test[:10]
@@ -93,7 +100,8 @@ def test_predict_ae():
     assert pred_signals[0].shape == pred.shape
     assert np.allclose(pred_signals[0], pred, atol=5e-5)
     assert pred_signals.shape == (10, true.shape[0])
-    
+
+
 def test_test_error():
     err = ae_em.test_error()
     assert err.shape == (direm.signal_test.shape[0],)

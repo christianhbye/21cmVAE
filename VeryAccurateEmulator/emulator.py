@@ -824,11 +824,11 @@ class AutoEncoderEmulator:
         """
         if use_autoencoder:
             pred = pp.unpreproc(
-                    self.autoencoder(
-                        pp.preproc(self.signal_test, self.signal_train)
-                    ),
-                    self.signal_train
-                    )
+                self.autoencoder(
+                    pp.preproc(self.signal_test, self.signal_train)
+                ),
+                self.signal_train,
+            )
         else:
             pred = self.predict(self.par_test)
         err = error(
