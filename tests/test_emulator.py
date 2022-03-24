@@ -30,7 +30,7 @@ def test_relative_mse_loss():
         np.max(np.abs(signal_train[:10] / np.std(signal_train)), axis=1)
     )
     rel_mse = mse / tf.keras.backend.square(amplitude)
-    assert tf.experimental.numpy.allclose(rel_mse, loss_fcn(y_true, y_pred))
+    assert np.allclose(rel_mse.numpy(), loss_fcn(y_true, y_pred).numpy())
 
 
 def test_z_nu():

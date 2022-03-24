@@ -195,7 +195,7 @@ def error(
 # default parameters
 hidden_dims = [288, 352, 288, 224]
 redshifts = np.linspace(5, 50, 451)
-with h5py.File(PATH + "dataset_21cmVAE.h5") as hf:
+with h5py.File(PATH + "dataset_21cmVAE.h5", "r") as hf:
     par_train = hf["par_train"][:]
     par_val = hf["par_val"][:]
     par_test = hf["par_test"][:]

@@ -1,3 +1,17 @@
-[build_system]
+[build-system]
 requires = ["setuptools >= 42", "setuptools_scm >= 6", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[tool.black]
+line-length = 79
+
+[tool.tox]
+legacy_tox_ini = """
+[tox]
+isolated_build=true
+envlist = py36, py37, py38, py39
+
+[testenv]
+deps = -rrequirements.txt
+commands = pytest tests/
+"""

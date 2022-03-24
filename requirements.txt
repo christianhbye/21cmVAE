@@ -6,4 +6,5 @@ matplotlib
 numpy
 pytest
 tensorflow
+tox
 tqdm
